@@ -1,0 +1,27 @@
+name: .NET CI Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-test:
+    name: Build & Test Microservices
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download source code to virtual machine
+        uses: actions/checkout@v4
+
+      - name: Install .NET environment
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Library restore
+        run: dotnet restore
+        
+      - name: Build project
+        run: dotnet build --no-restore --configuration Release
