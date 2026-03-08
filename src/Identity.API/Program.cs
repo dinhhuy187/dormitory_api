@@ -15,6 +15,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddControllers();
 
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
@@ -36,7 +39,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddDefaultTokenProviders();
 
 var secretKeyString = builder.Configuration["JWT_SECRET"];
-var secretKey = Encoding.UTF8.GetBytes(secretKeyString);
+var secretKey = Encoding.UTF8.GetBytes(secretKeyString!);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -64,7 +67,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-app.UseCustomExceptionHandling();
+app.UseExceptionHandler();
 
 app.MapDefaultEndpoints();
 

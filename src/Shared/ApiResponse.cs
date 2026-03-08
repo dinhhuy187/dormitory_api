@@ -4,29 +4,12 @@ using System.Text;
 
 namespace Shared
 {
-    public class ApiResponse<T>
+    public record ApiResponse<T>(T Data, PaginationMetadata? Meta = null);
+
+    public record PaginationMetadata(int TotalItems, int PageSize, int CurrentPage)
     {
-        public bool Success { get; set; }
-        public string? Message { get; set; }
-        public T? Data { get; set; }
-        public List<string>? Errors { get; set; }
-        public static ApiResponse<T> SuccessResponse(T data, string? message = "Success")
-        {
-            return new ApiResponse<T>
-            {
-                Success = true,
-                Data = data,
-                Message = message
-            };
-        }
-        public static ApiResponse<T> FailureResponse(List<string>? errors= null, string? message = "Failure")
-        {
-            return new ApiResponse<T>
-            {
-                Success = false,
-                Errors = errors,
-                Message = message
-            };
-        }
+        public int TotalPages => (int)Math.Ceiling((double)TotalItems / PageSize);
+        public bool HasPrevious => CurrentPage > 1;
+        public bool HasNext => CurrentPage < TotalPages;
     }
 }

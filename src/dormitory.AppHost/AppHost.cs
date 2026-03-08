@@ -1,12 +1,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgres("postgres")
-    .WithPgAdmin();
+builder.AddDockerComposeEnvironment("compose");
 
-var identityDb = postgres.AddDatabase("identitydb");
+// var postgres = builder.AddPostgres("postgres")
+//     .WithPgAdmin();
+// var identityDb = postgres.AddDatabase("identitydb");
+
+var identityDb = builder.AddConnectionString("identitydb");
 
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
-    .WithReference(identityDb)
-    .WaitFor(identityDb);
-
+    .WithReference(identityDb);
 builder.Build().Run();

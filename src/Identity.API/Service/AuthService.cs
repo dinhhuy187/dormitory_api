@@ -12,18 +12,18 @@ namespace Identity.API.Service
         UserManager<ApplicationUser> userManager,
         IConfiguration configuration) : IAuthService
     {
-        public async Task<ApiResponse<object>> LoginAsync(LoginRequestDto request)
+        public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request)
         {
             var user = await userManager.FindByEmailAsync(request.Email);
             if (user == null || !user.IsActive)
             {
-                return ApiResponse<object>.FailureResponse(new List<string> { "Invalid credentials" }, "Login failed");
+                throw new ApiException("Invalid credentials", 401);
             }
 
             var isPasswordValid = await userManager.CheckPasswordAsync(user, request.Password);
             if (!isPasswordValid)
             {
-                return ApiResponse<object>.FailureResponse(new List<string> { "Invalid credentials" }, "Login failed");
+                throw new ApiException("Invalid credentials", 401);
             }
 
             var role = await userManager.GetRolesAsync(user);
@@ -41,11 +41,11 @@ namespace Identity.API.Service
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTimeUtc = DateTime.UtcNow.AddDays(Convert.ToDouble(configuration["JWT_REFRESH_EXPIRY_DAYS"] ?? "14"));
 
-            return ApiResponse<object>.SuccessResponse(new AuthResponseDto
+            return new ApiResponse<AuthResponseDto>(new AuthResponseDto
             {
                 Token = accessToken,
                 RefreshToken = refreshToken,
-            }, "Login successful");
+            });
         }
 
         public async Task<bool> RegisterAsync(RegisterRequestDto request)
