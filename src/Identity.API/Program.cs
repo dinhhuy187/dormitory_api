@@ -74,7 +74,7 @@ app.MapDefaultEndpoints();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi("api/auth/openapi/v1.json");
     // Apply EF Core migrations at startup (optional)
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -93,8 +93,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
-
-app.UseHttpsRedirection();
 
 app.Run();
 
