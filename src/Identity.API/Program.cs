@@ -22,6 +22,8 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
 builder.AddNpgsqlDbContext<ApplicationDbContext>("identitydb");
+builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
