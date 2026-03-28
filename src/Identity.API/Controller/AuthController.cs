@@ -21,5 +21,11 @@ namespace Identity.API.Controller
             await authService.RegisterAsync(request);
             return NoContent();
         }
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request)
+        {
+            var result = await authService.RefreshTokenAsync(request);
+            return Ok(result);
+        }
     }
 }

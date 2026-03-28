@@ -7,5 +7,6 @@ namespace Identity.API.Service
     {
         Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request);
         Task<bool> RegisterAsync(RegisterRequestDto request);
+        Task<ApiResponse<AuthResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request);
     }
 }

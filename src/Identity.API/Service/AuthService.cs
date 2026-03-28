@@ -40,6 +40,8 @@ namespace Identity.API.Service
 
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTimeUtc = DateTime.UtcNow.AddDays(Convert.ToDouble(configuration["JWT_REFRESH_EXPIRY_DAYS"] ?? "14"));
+            var result = await userManager.UpdateAsync(user);
+            if (!result.Succeeded) throw new ApiException("Lỗi khi cập nhật phiên đăng nhập", 500);
 
             return new ApiResponse<AuthResponseDto>(new AuthResponseDto
             {
@@ -74,6 +76,55 @@ namespace Identity.API.Service
 
             await userManager.AddToRoleAsync(newUser, "Student");
             return true;
+        }
+
+        public async Task<ApiResponse<AuthResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto request)
+        {
+            var principal = GetPrincipalFromExpiredToken(request.AccessToken);
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var user = await userManager.FindByIdAsync(userId);
+
+            if (user == null ||
+                user.RefreshToken != request.RefreshToken ||
+                user.RefreshTokenExpiryTimeUtc <= DateTime.UtcNow)
+            {
+                throw new ApiException("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại", 401);
+            }
+
+            var newAccessToken = GenerateJwtToken(principal.Claims.ToList());
+            var newRefreshToken = Guid.NewGuid().ToString();
+
+            user.RefreshToken = newRefreshToken;
+            await userManager.UpdateAsync(user);
+
+            return new ApiResponse<AuthResponseDto>(new AuthResponseDto
+            {
+                Token = newAccessToken,
+                RefreshToken = newRefreshToken
+            });
+        }
+
+        private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = true,
+                ValidateIssuer = true,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT_SECRET"]!)),
+                ValidateLifetime = false,
+                ValidIssuer = configuration["JWT_ISSUER"],
+                ValidAudience = configuration["JWT_AUDIENCE"]
+            };
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            if (securityToken is not JwtSecurityToken jwtSecurityToken || 
+                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new ApiException("Invalid token", 401);
+            }
+            return principal;
         }
 
         private string GenerateJwtToken(List<Claim> claims)
