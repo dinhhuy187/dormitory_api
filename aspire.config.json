@@ -1,0 +1,5 @@
+{
+  "appHost": {
+    "path": "src/dormitory.AppHost/dormitory.AppHost.csproj"
+  }
+}
