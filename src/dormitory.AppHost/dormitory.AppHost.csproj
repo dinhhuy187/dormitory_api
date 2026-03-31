@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Identity.API\Identity.API.csproj" />
+    <ProjectReference Include="..\Profile.API\Profile.API.csproj" />
   </ItemGroup>
 
 </Project>

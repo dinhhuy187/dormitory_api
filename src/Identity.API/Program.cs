@@ -23,7 +23,6 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.AddNpgsqlDbContext<ApplicationDbContext>("identitydb");
 builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
-builder.Services.AddScoped<IProfileService, ProfileService>();
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
