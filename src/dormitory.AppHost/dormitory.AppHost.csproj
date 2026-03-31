@@ -1,4 +1,4 @@
-﻿<Project Sdk="Aspire.AppHost.Sdk/13.1.3">
+<Project Sdk="Aspire.AppHost.Sdk/13.2.1">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -16,7 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Gateway.API\Gateway.API.csproj" />
     <ProjectReference Include="..\Identity.API\Identity.API.csproj" />
-    <ProjectReference Include="..\Room.API\Room.API.csproj" />
+    <ProjectReference Include="..\RoomService.API\RoomService.API.csproj" />
   </ItemGroup>
 
 </Project>

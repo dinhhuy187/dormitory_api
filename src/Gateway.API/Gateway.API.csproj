@@ -11,6 +11,8 @@
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
     <PackageReference Include="Yarp.ReverseProxy" />
+	<PackageReference Include="DotNetEnv" />
+
   </ItemGroup>
 
   <ItemGroup>
