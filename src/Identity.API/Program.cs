@@ -49,7 +49,10 @@ builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 
 builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.CreateSchemaReferenceId = (type) => type.Type.FullName ?? type.Type.Name;
+});
 
 var app = builder.Build();
 
@@ -58,9 +61,9 @@ app.UseExceptionHandler();
 app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline.
+app.MapOpenApi("api/auth/openapi/v1.json");
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi("api/auth/openapi/v1.json");
     // Apply EF Core migrations at startup (optional)
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

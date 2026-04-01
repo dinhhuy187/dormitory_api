@@ -21,20 +21,23 @@ builder.Services.AddReverseProxy()
 
 var app = builder.Build();
 
+app.UseHttpsRedirection();
+
+app.MapOpenApi();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("api/auth/openapi/v1.json", "Identity Service API");
+    options.SwaggerEndpoint("api/rooms/openapi/v1.json", "Room Service API");
+
+    options.RoutePrefix = string.Empty;
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("api/auth/openapi/v1.json", "Identity Service API");
-        options.SwaggerEndpoint("api/rooms/openapi/v1.json", "Room Service API");
-
-        options.RoutePrefix = string.Empty;
-    });
+    
 }
 
-app.UseHttpsRedirection();
 
 app.MapReverseProxy();
 

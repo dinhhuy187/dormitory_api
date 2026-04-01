@@ -32,9 +32,9 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
 
+app.MapOpenApi("api/profile/openapi/v1.json");
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ProfileDbContext>();
     db.Database.Migrate(); // ← tự migrate khi start

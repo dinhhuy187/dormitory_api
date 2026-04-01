@@ -34,7 +34,8 @@ namespace Identity.API.Features.Auth
                     return Results.NoContent();
                 })
                 .WithTags("Auth")
-                .WithName("Register");
+                .WithName("Register")
+                .Produces(StatusCodes.Status204NoContent);
             }
         }
         public class Handler(

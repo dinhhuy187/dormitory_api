@@ -56,8 +56,8 @@ namespace RoomService.API.Features.Rooms
                 })
                 .WithTags("Rooms")
                 .WithName("UpdateRoom")
-                .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager", "SeniorManager")); 
-
+                .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager", "SeniorManager"))
+                .Produces(StatusCodes.Status204NoContent);
             }
         }
 

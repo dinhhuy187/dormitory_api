@@ -20,7 +20,10 @@ builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.CreateSchemaReferenceId = (type) => type.Type.FullName ?? type.Type.Name;
+});
 
 builder.AddNpgsqlDbContext<RoomDbContext>("roomdb");
 
@@ -43,10 +46,10 @@ app.UseExceptionHandler();
 
 app.MapDefaultEndpoints();
 
+app.MapOpenApi("api/rooms/openapi/v1.json");
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi("api/rooms/openapi/v1.json");
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<RoomDbContext>();
     dbContext.Database.Migrate();

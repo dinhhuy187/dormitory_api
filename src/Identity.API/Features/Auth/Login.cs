@@ -36,7 +36,8 @@ namespace Identity.API.Features.Auth
                     return Results.Ok(result);
                 })
                 .WithTags("Auth")
-                .WithName("Login");
+                .WithName("Login")
+                .Produces<Response>(StatusCodes.Status200OK);
             }
         }
 

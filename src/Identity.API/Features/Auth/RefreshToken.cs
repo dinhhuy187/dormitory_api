@@ -32,7 +32,8 @@ namespace Identity.API.Features.Auth
                     return Results.Ok(result);
                 })
                 .WithTags("Auth")
-                .WithName("RefreshToken");
+                .WithName("RefreshToken")
+                .Produces<Response>(StatusCodes.Status200OK);
             }
         }
         public class Handler(

@@ -12,8 +12,6 @@ services:
   identity-api:
     image: "${IDENTITY_API_IMAGE}"
     environment:
-      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES: "true"
-      OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "${IDENTITY_API_PORT}"
@@ -21,12 +19,55 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "identity-api"
-    env_file:
-      - .env
-    ports:
-      - "5001:${IDENTITY_API_PORT}"
     expose:
       - "${IDENTITY_API_PORT}"
+    networks:
+      - "aspire"
+  profile-api:
+    image: "${PROFILE_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${PROFILE_API_PORT}"
+      ConnectionStrings__profiledb: "${PROFILEDB}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "profile-api"
+    expose:
+      - "${PROFILE_API_PORT}"
+    networks:
+      - "aspire"
+  room-api:
+    image: "${ROOM_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${ROOM_API_PORT}"
+      ConnectionStrings__roomdb: "${ROOMDB}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "room-api"
+    expose:
+      - "${ROOM_API_PORT}"
+    networks:
+      - "aspire"
+  gateway-api:
+    image: "${GATEWAY_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${GATEWAY_API_PORT}"
+      IDENTITY_API_HTTP: "http://identity-api:${IDENTITY_API_PORT}"
+      services__identity-api__http__0: "http://identity-api:${IDENTITY_API_PORT}"
+      IDENTITY_API_HTTPS: "https://identity-api:${IDENTITY_API_PORT}"
+      ROOM_API_HTTP: "http://room-api:${ROOM_API_PORT}"
+      services__room-api__http__0: "http://room-api:${ROOM_API_PORT}"
+      ROOM_API_HTTPS: "https://room-api:${ROOM_API_PORT}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "gateway-api"
+    ports:
+      - "${GATEWAY_API_PORT}"
     networks:
       - "aspire"
 networks:

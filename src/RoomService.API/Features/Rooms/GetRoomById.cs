@@ -43,7 +43,8 @@ namespace RoomService.API.Features.Rooms
                 })
                 .WithTags("Rooms")
                 .WithName("GetRoomById")
-                .RequireAuthorization();
+                .RequireAuthorization()
+                .Produces<Response>(StatusCodes.Status200OK);
             }
         }
 
