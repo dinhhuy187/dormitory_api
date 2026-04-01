@@ -7,7 +7,22 @@ builder.AddDockerComposeEnvironment("compose");
 // var identityDb = postgres.AddDatabase("identitydb");
 
 var identityDb = builder.AddConnectionString("identitydb");
+var profileDb = builder.AddConnectionString("profiledb");
+var roomDb = builder.AddConnectionString("roomdb");
 
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
     .WithReference(identityDb);
+
+var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
+    .WithReference(profileDb);
+
+var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
+    .WithReference(roomDb);
+
+var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
+    .WithReference(identityApi)
+    .WithReference(roomApi)
+    .WithExternalHttpEndpoints();
+
+
 builder.Build().Run();

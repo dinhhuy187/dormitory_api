@@ -1,19 +1,18 @@
+using Carter;
 using DotNetEnv;
-using Identity.API.Models;
-using Identity.API.Service;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using FluentValidation;
+using Identity.API.Domain.Entities;
+using Identity.API.Infrastructure.Authentication;
+using Identity.API.Infrastructure.Database;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Shared;
-using System.Text;
 
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Services.AddControllers();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -22,8 +21,14 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
 builder.AddNpgsqlDbContext<ApplicationDbContext>("identitydb");
-builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
-builder.Services.AddScoped<IProfileService, ProfileService>();
+
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
+builder.Services.AddCarter();
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -40,30 +45,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-var secretKeyString = builder.Configuration["JWT_SECRET"];
-var secretKey = Encoding.UTF8.GetBytes(secretKeyString!);
+builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(secretKey),
-            ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["JWT_ISSUER"],
-            ValidateAudience = true,
-            ValidAudience = builder.Configuration["JWT_AUDIENCE"],
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
-    });
-
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 
 builder.Services.AddOpenApi();
 
@@ -76,7 +60,7 @@ app.MapDefaultEndpoints();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi("api/auth/openapi/v1.json");
     // Apply EF Core migrations at startup (optional)
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -91,12 +75,8 @@ if (app.Environment.IsDevelopment())
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
     }
-
 }
 
-app.MapControllers();
-
-app.UseHttpsRedirection();
+app.MapCarter();
 
 app.Run();
-
