@@ -46,6 +46,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddDefaultTokenProviders();
 
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
+builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 
@@ -79,7 +80,7 @@ if (app.Environment.IsDevelopment())
         logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
     }
 }
-
+app.UseAuthorization();
 app.MapCarter();
 
 app.Run();
