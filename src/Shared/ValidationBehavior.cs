@@ -1,7 +1,7 @@
 using FluentValidation;
 using MediatR;
 
-namespace RoomService.API.Infrastructure.PipelineBehaviors
+namespace Shared
 {
     public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : IRequest<TResponse>

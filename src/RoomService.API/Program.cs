@@ -4,7 +4,6 @@ using DotNetEnv;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Infrastructure.Database;
-using RoomService.API.Infrastructure.PipelineBehaviors;
 using Shared;
 
 Env.Load();

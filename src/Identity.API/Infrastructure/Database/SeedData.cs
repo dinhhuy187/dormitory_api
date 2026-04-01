@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Identity.API.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 
-namespace Identity.API.Models
+namespace Identity.API.Infrastructure.Database
 {
     public static class SeedData
     {

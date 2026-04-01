@@ -1,6 +1,9 @@
+using Carter;
 using DotNetEnv;
-using Identity.API.Models;
-using Identity.API.Service;
+using FluentValidation;
+using Identity.API.Domain.Entities;
+using Identity.API.Infrastructure.Authentication;
+using Identity.API.Infrastructure.Database;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -10,17 +13,22 @@ Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.Services.AddControllers();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Configuration.AddEnvironmentVariables();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
 builder.AddNpgsqlDbContext<ApplicationDbContext>("identitydb");
-builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
+
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+});
+builder.Services.AddCarter();
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -39,8 +47,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 
-
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IJwtProvider, JwtProvider>();
 
 builder.Services.AddOpenApi();
 
@@ -70,7 +77,6 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.MapControllers();
+app.MapCarter();
 
 app.Run();
-
