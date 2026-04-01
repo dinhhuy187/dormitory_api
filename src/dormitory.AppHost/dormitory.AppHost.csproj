@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Gateway.API\Gateway.API.csproj" />
     <ProjectReference Include="..\Identity.API\Identity.API.csproj" />
+    <ProjectReference Include="..\Profile.API\Profile.API.csproj" />
     <ProjectReference Include="..\RoomService.API\RoomService.API.csproj" />
   </ItemGroup>
 

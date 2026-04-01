@@ -7,6 +7,7 @@
     <Project Path="src/dormitory.ServiceDefaults/dormitory.ServiceDefaults.csproj" />
     <Project Path="src/Gateway.API/Gateway.API.csproj" />
     <Project Path="src/Identity.API/Identity.API.csproj" />
+    <Project Path="src/Profile.API/Profile.API.csproj" />
     <Project Path="src/RoomService.API/RoomService.API.csproj" />
     <Project Path="src/Shared/Shared.csproj" Id="87dc028a-ab72-4cb8-bb43-a6005bbd17f0" />
   </Folder>
