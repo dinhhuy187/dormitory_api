@@ -54,39 +54,39 @@ namespace RoomService.API.Infrastructure.Database
             var buildings = new List<Building>
             {
                 // CỤM BA (12 tầng - Đa số là Nữ và một phần Nam)
-                new() { ZoneName = "Cụm BA", Code = "BA1", Name = "Tòa nhà BA1", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BA", Code = "BA2", Name = "Tòa nhà BA2", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BA", Code = "BA3", Name = "Tòa nhà BA3", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BA", Code = "BA4", Name = "Tòa nhà BA4", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BA", Code = "BA5", Name = "Tòa nhà BA5 (Dịch vụ)", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BA", Code = "BA1", Name = "Tòa nhà BA1", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BA", Code = "BA2", Name = "Tòa nhà BA2", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BA", Code = "BA3", Name = "Tòa nhà BA3", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BA", Code = "BA4", Name = "Tòa nhà BA4", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BA", Code = "BA5", Name = "Tòa nhà BA5 (Dịch vụ)", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
 
                 // CỤM BB (16 tầng - Thường là các tòa cao nhất, phân bổ Nam/Nữ)
-                new() { ZoneName = "Cụm BB", Code = "BB1", Name = "Tòa nhà BB1", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 16 },
-                new() { ZoneName = "Cụm BB", Code = "BB2", Name = "Tòa nhà BB2", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 16 },
-                new() { ZoneName = "Cụm BB", Code = "BB3", Name = "Tòa nhà BB3 (Dịch vụ)", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 16 },
+                new() { ZoneName = "Cụm BB", Code = "BB1", Name = "Tòa nhà BB1", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 16 },
+                new() { ZoneName = "Cụm BB", Code = "BB2", Name = "Tòa nhà BB2", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 16 },
+                new() { ZoneName = "Cụm BB", Code = "BB3", Name = "Tòa nhà BB3 (Dịch vụ)", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 16 },
 
                 // CỤM BC (12 tầng - Nằm sâu bên trong, phân bổ Nam/Nữ)
-                new() { ZoneName = "Cụm BC", Code = "BC1", Name = "Tòa nhà BC1", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BC", Code = "BC2", Name = "Tòa nhà BC2", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BC", Code = "BC3", Name = "Tòa nhà BC3", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BC", Code = "BC4", Name = "Tòa nhà BC4", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BC", Code = "BC5", Name = "Tòa nhà BC5", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BC", Code = "BC6", Name = "Tòa nhà BC6 (Dịch vụ)", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BC", Code = "BC1", Name = "Tòa nhà BC1", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BC", Code = "BC2", Name = "Tòa nhà BC2", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BC", Code = "BC3", Name = "Tòa nhà BC3", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BC", Code = "BC4", Name = "Tòa nhà BC4", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BC", Code = "BC5", Name = "Tòa nhà BC5", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BC", Code = "BC6", Name = "Tòa nhà BC6 (Dịch vụ)", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
 
                 // CỤM BD (12 tầng - Gần khu vực sân thể thao, căn tin lớn)
-                new() { ZoneName = "Cụm BD", Code = "BD1", Name = "Tòa nhà BD1", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BD", Code = "BD2", Name = "Tòa nhà BD2", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BD", Code = "BD3", Name = "Tòa nhà BD3", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BD", Code = "BD4", Name = "Tòa nhà BD4", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BD", Code = "BD5", Name = "Tòa nhà BD5 (Dịch vụ)", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BD", Code = "BD6", Name = "Tòa nhà BD6 (Dịch vụ)", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BD", Code = "BD1", Name = "Tòa nhà BD1", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BD", Code = "BD2", Name = "Tòa nhà BD2", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BD", Code = "BD3", Name = "Tòa nhà BD3", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BD", Code = "BD4", Name = "Tòa nhà BD4", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BD", Code = "BD5", Name = "Tòa nhà BD5 (Dịch vụ)", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BD", Code = "BD6", Name = "Tòa nhà BD6 (Dịch vụ)", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
 
                 // CỤM BE (Tên thực tế thường gọi là E1, E2... - Tòa mới, thiết kế hiện đại)
-                new() { ZoneName = "Cụm BE", Code = "E1", Name = "Tòa nhà E1", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BE", Code = "E2", Name = "Tòa nhà E2", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BE", Code = "E3", Name = "Tòa nhà E3 (Dịch vụ)", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BE", Code = "E4", Name = "Tòa nhà E4 (Dịch vụ)", GenderRestriction = GenderRestriction.MaleOnly, TotalFloors = 12 },
-                new() { ZoneName = "Cụm BE", Code = "E5", Name = "Tòa nhà E5 (Dịch vụ VIP)", GenderRestriction = GenderRestriction.FemaleOnly, TotalFloors = 12 }
+                new() { ZoneName = "Cụm BE", Code = "E1", Name = "Tòa nhà E1", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BE", Code = "E2", Name = "Tòa nhà E2", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BE", Code = "E3", Name = "Tòa nhà E3 (Dịch vụ)", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BE", Code = "E4", Name = "Tòa nhà E4 (Dịch vụ)", GenderRestriction = GenderRestriction.MALEONLY, TotalFloors = 12 },
+                new() { ZoneName = "Cụm BE", Code = "E5", Name = "Tòa nhà E5 (Dịch vụ VIP)", GenderRestriction = GenderRestriction.FEMALEONLY, TotalFloors = 12 }
             };
 
             context.Buildings.AddRange(buildings);
@@ -139,14 +139,14 @@ namespace RoomService.API.Infrastructure.Database
 
                         if (random.Next(1, 100) <= 3)
                         {
-                            currentStatus = RoomStatus.Maintenance;
+                            currentStatus = RoomStatus.MAINTENANCE;
                             currentOccupied = 0; // Ép số lượng người ở về 0
                         }
                         else
                         {
                             // 97% số phòng còn lại hoạt động bình thường
                             currentOccupied = random.Next(0, capacity + 1);
-                            currentStatus = currentOccupied == capacity ? RoomStatus.Full : RoomStatus.Available;
+                            currentStatus = currentOccupied == capacity ? RoomStatus.FULL : RoomStatus.AVAILABLE;
                         }
 
                         roomsToInsert.Add(new Room

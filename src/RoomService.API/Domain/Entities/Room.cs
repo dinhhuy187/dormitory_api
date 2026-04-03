@@ -11,7 +11,7 @@ namespace RoomService.API.Domain.Entities
         public string RoomNumber { get; set; } = string.Empty;
         public int Floor { get; set; }
         public int OccupiedCount { get; set; } = 0;
-        public RoomStatus RoomStatus { get; set; } = RoomStatus.Available;
+        public RoomStatus RoomStatus { get; set; } = RoomStatus.AVAILABLE;
 
         // Navigation Properties
         public virtual Building? Building { get; set; }

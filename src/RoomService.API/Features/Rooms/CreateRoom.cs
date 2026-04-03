@@ -81,7 +81,7 @@ namespace RoomService.API.Features.Rooms
                     RoomNumber = request.Name,
                     Floor = request.Floor,
                     RoomTypeId = request.RoomTypeId,
-                    RoomStatus = RoomStatus.Available, // Mặc định phòng mới là sẵn sàng
+                    RoomStatus = RoomStatus.AVAILABLE, // Mặc định phòng mới là sẵn sàng
                     OccupiedCount = 0 // Mặc định chưa có ai ở
                 };
 

@@ -11,6 +11,7 @@ namespace RoomService.API.Features.Rooms
     public static class GetRooms
     {
         public record Query(
+            string? Search,
             Guid? BuildingId,
             RoomStatus? RoomStatus,
             int Page = 1,
@@ -69,6 +70,17 @@ namespace RoomService.API.Features.Rooms
             {
                 var queryable = dbContext.Rooms.AsNoTracking().AsQueryable();
 
+                if (!string.IsNullOrWhiteSpace(request.Search))
+                {
+                    var searchTerm = request.Search.ToLower();
+                    queryable = queryable.Where(r => 
+                        r.RoomNumber.ToLower().Contains(searchTerm) || 
+                        r.Building!.Name.ToLower().Contains(searchTerm) ||
+                        r.Building.ZoneName.ToLower().Contains(searchTerm) ||
+                        r.RoomType!.Name.ToLower().Contains(searchTerm)
+                    );
+                }
+
                 if (request.BuildingId.HasValue)
                 {
                     queryable = queryable.Where(r => r.BuildingId == request.BuildingId.Value);
@@ -82,6 +94,8 @@ namespace RoomService.API.Features.Rooms
                 var totalCount = await queryable.CountAsync(cancellationToken);
 
                 var items = await queryable
+                .OrderBy(r => r.Building!.Name) 
+                .ThenBy(r => r.RoomNumber) 
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(r => new Response(

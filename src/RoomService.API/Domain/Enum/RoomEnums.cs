@@ -2,14 +2,14 @@ namespace RoomService.API.Domain.Enum;
 
 public enum GenderRestriction
 {
-    MaleOnly = 1,
-    FemaleOnly = 2,
-    Mixed = 3   
+    MALEONLY = 1,
+    FEMALEONLY = 2,
+    MIXED = 3   
 }
 
 public enum RoomStatus
 {
-    Available = 1,
-    Full = 2,
-    Maintenance = 3
+    AVAILABLE = 1,
+    FULL = 2,
+    MAINTENANCE = 3
 }
