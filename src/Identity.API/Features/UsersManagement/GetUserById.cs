@@ -14,7 +14,10 @@ namespace Identity.API.Features.UsersManagement
             string Email,
             string FullName,
             bool IsActive,
-            string Role
+            string Role,
+            string AvatarUrl,
+            DateTime JoinedAt,
+            DateTime LastActiveAt
         );
         public class Validator : AbstractValidator<Query>
         {
@@ -53,7 +56,8 @@ namespace Identity.API.Features.UsersManagement
                         u.Id,
                         u.Email,
                         u.FullName,
-                        u.IsActive
+                        u.IsActive,
+                        u.CreatedAt
                     })
                     .FirstOrDefaultAsync(cancellationToken);
 
@@ -76,7 +80,10 @@ namespace Identity.API.Features.UsersManagement
                     user.Email!,
                     user.FullName,
                     user.IsActive,
-                    roleName ?? string.Empty
+                    roleName ?? string.Empty,
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/DoMixi1989.jpg/960px-DoMixi1989.jpg",
+                    user.CreatedAt,
+                    DateTime.UtcNow - TimeSpan.FromHours(2) // Placeholder cho LastActiveAt vì chưa có tracking thực tế
                 );
 
                 return new ApiResponse<Response>(response);

@@ -10,4 +10,5 @@ public class ApplicationUser : IdentityUser
     public DateTime? RefreshTokenExpiryTimeUtc { get; set; }
     public string? GoogleProviderKey { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
