@@ -7,7 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
 	<PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
-	<PackageReference Include="MediatR" />
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="DotNetEnv" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />

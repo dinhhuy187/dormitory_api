@@ -3,7 +3,6 @@ using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Domain.Entities;
 using Identity.API.Infrastructure.Authentication;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
@@ -12,7 +11,7 @@ namespace Identity.API.Features.Auth
 {
     public static class Login
     {
-        public record Command(string Email, string Password) : IRequest<ApiResponse<Response>>;
+        public record Command(string Email, string Password);
 
         public record Response(string Token, string RefreshToken);
 
@@ -30,9 +29,9 @@ namespace Identity.API.Features.Auth
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapPost("/api/auth/login", async ([FromBody] Command command, IMediator mediator) =>
+                app.MapPost("/api/auth/login", async ([FromBody] Command command, Handler handler, CancellationToken ct) =>
                 {
-                    var result = await mediator.Send(command);
+                    var result = await handler.ExecuteAsync(command, ct);
                     return Results.Ok(result);
                 })
                 .WithTags("Auth")
@@ -44,9 +43,9 @@ namespace Identity.API.Features.Auth
         public class Handler(
             UserManager<ApplicationUser> userManager,
             IConfiguration configuration,
-            IJwtProvider jwtProvider) : IRequestHandler<Command, ApiResponse<Response>>
+            IJwtProvider jwtProvider)
         {
-            public async Task<ApiResponse<Response>> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<ApiResponse<Response>> ExecuteAsync(Command request, CancellationToken cancellationToken)
             {
                 // Kiểm tra User có tồn tại không
                 var user = await userManager.FindByEmailAsync(request.Email);

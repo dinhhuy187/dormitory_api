@@ -1,7 +1,6 @@
 using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Domain.Entities;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
@@ -10,7 +9,7 @@ namespace Identity.API.Features.Auth
 {
     public static class Register
     {
-        public record Command(string Email,string FullName, string Password) : IRequest<bool>;
+        public record Command(string Email,string FullName, string Password);
         public class Validator : AbstractValidator<Command>
         {
             public Validator()
@@ -28,9 +27,9 @@ namespace Identity.API.Features.Auth
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapPost("/api/auth/register", async ([FromBody] Command command, IMediator mediator) =>
+                app.MapPost("/api/auth/register", async ([FromBody] Command command, Handler handler, CancellationToken ct) =>
                 {
-                    await mediator.Send(command);
+                    await handler.ExecuteAsync(command, ct);
                     return Results.NoContent();
                 })
                 .WithTags("Auth")
@@ -39,9 +38,9 @@ namespace Identity.API.Features.Auth
             }
         }
         public class Handler(
-            UserManager<ApplicationUser> userManager) : IRequestHandler<Command, bool>
+            UserManager<ApplicationUser> userManager)
         {
-            public async Task<bool> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<bool> ExecuteAsync(Command request, CancellationToken cancellationToken)
             {
                 var existingUser = await userManager.FindByEmailAsync(request.Email);
                 if (existingUser != null)

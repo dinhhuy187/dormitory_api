@@ -3,7 +3,6 @@ using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Domain.Entities;
 using Identity.API.Infrastructure.Authentication;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
@@ -12,7 +11,7 @@ namespace Identity.API.Features.Auth
 {
     public static class RefreshToken
     {
-        public record Command(string AccessToken, string RefreshToken) : IRequest<ApiResponse<Response>>;
+        public record Command(string AccessToken, string RefreshToken);
         public record Response(string Token, string RefreshToken);
         public class Validator : AbstractValidator<Command>
         {
@@ -26,9 +25,9 @@ namespace Identity.API.Features.Auth
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapPost("/api/auth/refresh-token", async ([FromBody] Command command, IMediator mediator) =>
+                app.MapPost("/api/auth/refresh-token", async ([FromBody] Command command, Handler handler, CancellationToken ct) =>
                 {
-                    var result = await mediator.Send(command);
+                    var result = await handler.ExecuteAsync(command, ct);
                     return Results.Ok(result);
                 })
                 .WithTags("Auth")
@@ -39,9 +38,9 @@ namespace Identity.API.Features.Auth
         public class Handler(
             IJwtProvider jwtProvider,
             UserManager<ApplicationUser> userManager
-            ) : IRequestHandler<Command, ApiResponse<Response>>
+            )
         {
-            public async Task<ApiResponse<Response>> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<ApiResponse<Response>> ExecuteAsync(Command request, CancellationToken cancellationToken)
             {
                 var principal = jwtProvider.GetPrincipalFromExpiredToken(request.AccessToken);
 

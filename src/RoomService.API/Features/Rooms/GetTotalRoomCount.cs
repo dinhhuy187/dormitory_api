@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Shared.Endpoints;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Enum;
 using RoomService.API.Infrastructure.Database;
@@ -13,14 +12,14 @@ namespace RoomService.API.Features.Rooms
 {
     public static class GetTotalRoomCount
     {
-        public record Query(Guid? BuildingId) : IRequest<ApiResponse<Dictionary<string, int>>>;
+        public record Query(Guid? BuildingId);
         public class Endpoint : IEndpoint
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapGet("/api/rooms/count", async ([AsParameters] Query query, IMediator mediator) =>
+                app.MapGet("/api/rooms/count", async ([AsParameters] Query query, Handler handler, CancellationToken ct) =>
                 {
-                    var result = await mediator.Send(query);
+                    var result = await handler.ExecuteAsync(query, ct);
                     return Results.Ok(result);
                 })
                 .WithTags("Rooms")
@@ -28,9 +27,9 @@ namespace RoomService.API.Features.Rooms
                 .Produces<Dictionary<string, int>>(StatusCodes.Status200OK);
             }
         }
-        public class Handler(RoomDbContext dbContext) : IRequestHandler<Query, ApiResponse<Dictionary<string, int>>>
+        public class Handler(RoomDbContext dbContext)
         {
-            public async Task<ApiResponse<Dictionary<string, int>>> Handle(Query request, CancellationToken cancellationToken)
+            public async Task<ApiResponse<Dictionary<string, int>>> ExecuteAsync(Query request, CancellationToken cancellationToken)
             {
                 var queryable = dbContext.Rooms.AsNoTracking().AsQueryable();
 

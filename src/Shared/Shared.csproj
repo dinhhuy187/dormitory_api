@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Include="MediatR" />
   <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
 	<FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>

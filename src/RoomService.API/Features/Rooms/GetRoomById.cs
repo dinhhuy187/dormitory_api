@@ -1,5 +1,4 @@
 using Shared.Endpoints;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Enum;
 using RoomService.API.Infrastructure.Database;
@@ -9,7 +8,7 @@ namespace RoomService.API.Features.Rooms
 {
     public static class GetRoomById
     {
-        public record Query(Guid Id) : IRequest<Response?>;
+        public record Query(Guid Id);
 
         public record Response(
             Guid Id,
@@ -30,9 +29,9 @@ namespace RoomService.API.Features.Rooms
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapGet("/api/rooms/{id:guid}", async (Guid id, IMediator mediator) =>
+                app.MapGet("/api/rooms/{id:guid}", async (Guid id, Handler handler, CancellationToken ct) =>
                 {
-                    var result = await mediator.Send(new Query(id));
+                    var result = await handler.ExecuteAsync(new Query(id), ct);
 
                     if (result is null)
                     {
@@ -48,9 +47,9 @@ namespace RoomService.API.Features.Rooms
             }
         }
 
-        public class Handler(RoomDbContext dbContext) : IRequestHandler<Query, Response?>
+        public class Handler(RoomDbContext dbContext)
         {
-            public async Task<Response?> Handle(Query request, CancellationToken cancellationToken)
+            public async Task<Response?> ExecuteAsync(Query request, CancellationToken cancellationToken)
             {
                 var room = await dbContext.Rooms
                     .AsNoTracking() // Tối ưu hiệu năng cho thao tác chỉ đọc (Read-only)

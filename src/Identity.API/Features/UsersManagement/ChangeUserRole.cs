@@ -1,7 +1,6 @@
 using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Domain.Entities;
-using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
@@ -11,7 +10,7 @@ namespace Identity.API.Features.UsersManagement
     public static class ChangeUserRole
     {
         public record RequestBody(string Role);
-        public record Command(string UserId, string Role) : IRequest<bool>;
+        public record Command(string UserId, string Role);
         public class Validator : AbstractValidator<Command>
         {
             public Validator()
@@ -29,10 +28,10 @@ namespace Identity.API.Features.UsersManagement
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapPut("/api/auth/users/{id}/role", async (string id, [FromBody] RequestBody body, IMediator mediator) =>
+                app.MapPut("/api/auth/users/{id}/role", async (string id, [FromBody] RequestBody body, Handler handler, CancellationToken ct) =>
                 {
                     var command = new Command(id, body.Role);
-                    await mediator.Send(command);
+                    await handler.ExecuteAsync(command, ct);
                     
                     return Results.NoContent();
                 })
@@ -44,9 +43,9 @@ namespace Identity.API.Features.UsersManagement
         }
         public class Handler(
             UserManager<ApplicationUser> userManager,
-            RoleManager<IdentityRole> roleManager) : IRequestHandler<Command, bool>
+            RoleManager<IdentityRole> roleManager)
         {
-            public async Task<bool> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<bool> ExecuteAsync(Command request, CancellationToken cancellationToken)
             {
                 var user = await userManager.FindByIdAsync(request.UserId);
                 if (user == null)

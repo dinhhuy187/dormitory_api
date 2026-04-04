@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using System.Reflection;
+using Shared.Extensions;
 
 Env.Load();
 
@@ -24,11 +25,7 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.AddNpgsqlDbContext<ApplicationDbContext>("identitydb");
 
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
-builder.Services.AddMediatR(cfg =>
-{
-    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
-    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
-});
+builder.Services.AddHandlersFromAssemblyContaining<Program>();
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 builder.Services.AddDataProtection();

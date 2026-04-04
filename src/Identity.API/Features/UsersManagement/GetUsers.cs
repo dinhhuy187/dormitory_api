@@ -1,7 +1,6 @@
 using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Infrastructure.Database;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 
@@ -15,7 +14,7 @@ namespace Identity.API.Features.UsersManagement
             string? Status,
             int Page = 1,
             int PageSize = 20
-        ) : IRequest<ApiResponse<List<Response>>>;
+        );
         public record Response(
             string Id,
             string Email,
@@ -44,9 +43,9 @@ namespace Identity.API.Features.UsersManagement
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapGet("/api/auth/users", async ([AsParameters] Query query, IMediator mediator) =>
+                app.MapGet("/api/auth/users", async ([AsParameters] Query query, Handler handler, CancellationToken ct) =>
                 {
-                    var result = await mediator.Send(query);
+                    var result = await handler.ExecuteAsync(query, ct);
                     return Results.Ok(result);
                 })
                 .WithTags("Users Management")
@@ -55,9 +54,9 @@ namespace Identity.API.Features.UsersManagement
                 .Produces<List<Response>>(StatusCodes.Status200OK);
             }
         }
-        public class Handler(ApplicationDbContext dbContext) : IRequestHandler<Query, ApiResponse<List<Response>>>
+        public class Handler(ApplicationDbContext dbContext)
         {
-            public async Task<ApiResponse<List<Response>>> Handle(Query request, CancellationToken cancellationToken)
+            public async Task<ApiResponse<List<Response>>> ExecuteAsync(Query request, CancellationToken cancellationToken)
             {
                 var queryable = dbContext.Users.AsNoTracking().AsQueryable();
 

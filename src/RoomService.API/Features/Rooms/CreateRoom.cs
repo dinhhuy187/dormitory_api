@@ -1,5 +1,4 @@
 using FluentValidation;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Entities;
@@ -17,7 +16,7 @@ namespace RoomService.API.Features.Rooms
             string Name,
             int Floor,
             Guid RoomTypeId
-        ) : IRequest<Guid>;
+        );
 
         public class Validator : AbstractValidator<Command>
         {
@@ -36,9 +35,9 @@ namespace RoomService.API.Features.Rooms
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapPost("/api/rooms", async ([FromBody] Command command, IMediator mediator) =>
+                app.MapPost("/api/rooms", async ([FromBody] Command command, Handler handler, CancellationToken ct) =>
                 {
-                    var roomId = await mediator.Send(command);
+                    var roomId = await handler.ExecuteAsync(command, ct);
                     
                     // Trả về HTTP 201 Created kèm theo ID của phòng vừa tạo
                     return Results.Created($"/api/rooms/{roomId}", new { Id = roomId });
@@ -50,9 +49,9 @@ namespace RoomService.API.Features.Rooms
             }
         }
 
-        public class Handler(RoomDbContext dbContext) : IRequestHandler<Command, Guid>
+        public class Handler(RoomDbContext dbContext)
         {
-            public async Task<Guid> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<Guid> ExecuteAsync(Command request, CancellationToken cancellationToken)
             {
                 // --- BƯỚC 1: KIỂM TRA TÒA NHÀ VÀ LOẠI PHÒNG CÓ TỒN TẠI KHÔNG ---
                 var buildingExists = await dbContext.Buildings

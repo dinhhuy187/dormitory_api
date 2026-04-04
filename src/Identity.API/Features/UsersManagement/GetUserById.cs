@@ -1,7 +1,6 @@
 using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Infrastructure.Database;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 
@@ -9,7 +8,7 @@ namespace Identity.API.Features.UsersManagement
 {
     public static class GetUserById
     {
-        public record Query(string Id) : IRequest<ApiResponse<Response>>;
+        public record Query(string Id);
         public record Response(
             string Id,
             string Email,
@@ -29,9 +28,9 @@ namespace Identity.API.Features.UsersManagement
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapGet("/api/auth/users/{id}", async (string id, IMediator mediator) =>
+                app.MapGet("/api/auth/users/{id}", async (string id, Handler handler, CancellationToken ct) =>
                 {
-                    var result = await mediator.Send(new Query(id));
+                    var result = await handler.ExecuteAsync(new Query(id), ct);
                     return Results.Ok(result);
                 })
                 .WithTags("Users Management")
@@ -40,9 +39,9 @@ namespace Identity.API.Features.UsersManagement
                 .Produces<Response>(StatusCodes.Status200OK);
             }
         }
-        public class Handler(ApplicationDbContext dbContext) : IRequestHandler<Query, ApiResponse<Response>>
+        public class Handler(ApplicationDbContext dbContext)
         {
-            public async Task<ApiResponse<Response>> Handle(Query request, CancellationToken cancellationToken)
+            public async Task<ApiResponse<Response>> ExecuteAsync(Query request, CancellationToken cancellationToken)
             {
                 // Truy vấn thông tin cơ bản của User
                 var user = await dbContext.Users

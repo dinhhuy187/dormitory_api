@@ -1,6 +1,5 @@
 using Shared.Endpoints;
 using FluentValidation;
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Enum;
 using RoomService.API.Infrastructure.Database;
@@ -16,7 +15,7 @@ namespace RoomService.API.Features.Rooms
             RoomStatus? RoomStatus,
             int Page = 1,
             int PageSize = 20
-            ) : IRequest<ApiResponse<List<Response>>>;
+            );
         
         public class Validator : AbstractValidator<Query>
         {
@@ -52,9 +51,9 @@ namespace RoomService.API.Features.Rooms
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapGet("/api/rooms", async ([AsParameters] Query query, IMediator mediator) =>
+                app.MapGet("/api/rooms", async ([AsParameters] Query query, Handler handler, CancellationToken ct) =>
                 {
-                    var result = await mediator.Send(query);
+                    var result = await handler.ExecuteAsync(query, ct);
                     return Results.Ok(result);
                 })
                 .WithTags("Rooms")
@@ -64,9 +63,9 @@ namespace RoomService.API.Features.Rooms
             }
         }
 
-        public class Handler(RoomDbContext dbContext) : IRequestHandler<Query, ApiResponse<List<Response>>>
+        public class Handler(RoomDbContext dbContext)
         {
-            public async Task<ApiResponse<List<Response>>> Handle(Query request, CancellationToken cancellationToken)
+            public async Task<ApiResponse<List<Response>>> ExecuteAsync(Query request, CancellationToken cancellationToken)
             {
                 var queryable = dbContext.Rooms.AsNoTracking().AsQueryable();
 

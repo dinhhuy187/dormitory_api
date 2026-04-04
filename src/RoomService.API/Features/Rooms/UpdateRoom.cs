@@ -1,6 +1,5 @@
 using Shared.Endpoints;
 using FluentValidation;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Enum;
@@ -19,7 +18,7 @@ namespace RoomService.API.Features.Rooms
             RoomStatus RoomStatus
         );
 
-        public record Command(Guid Id, RequestBody Body) : IRequest<bool>;
+        public record Command(Guid Id, RequestBody Body);
 
         public class Validator : AbstractValidator<Command>
         {
@@ -45,10 +44,10 @@ namespace RoomService.API.Features.Rooms
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapPut("/api/rooms/{id:guid}", async (Guid id, [FromBody] RequestBody body, IMediator mediator) =>
+                app.MapPut("/api/rooms/{id:guid}", async (Guid id, [FromBody] RequestBody body, Handler handler, CancellationToken ct) =>
                 {
                     var command = new Command(id, body);
-                    var result = await mediator.Send(command);
+                    var result = await handler.ExecuteAsync(command, ct);
 
                     if (!result) return Results.NotFound(new { Message = "Không tìm thấy phòng để cập nhật." });
 
@@ -61,9 +60,9 @@ namespace RoomService.API.Features.Rooms
             }
         }
 
-        public class Handler(RoomDbContext dbContext) : IRequestHandler<Command, bool>
+        public class Handler(RoomDbContext dbContext)
         {
-            public async Task<bool> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<bool> ExecuteAsync(Command request, CancellationToken cancellationToken)
             {
                 var room = await dbContext.Rooms
                     .FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken);

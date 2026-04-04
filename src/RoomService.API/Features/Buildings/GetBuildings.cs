@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Enum;
 using RoomService.API.Infrastructure.Database;
@@ -9,7 +8,6 @@ namespace RoomService.API.Features.Buildings
 {
     public static class GetBuildings
     {
-        public record Query : IRequest<ApiResponse<List<Response>>>;
         public record Response(
             Guid Id,
             string ZoneName,
@@ -23,9 +21,9 @@ namespace RoomService.API.Features.Buildings
         {
             public void MapEndpoint(IEndpointRouteBuilder app)
             {
-                app.MapGet("/api/rooms/buildings", async (IMediator mediator) =>
+                app.MapGet("/api/rooms/buildings", async (Handler handler, CancellationToken ct) =>
                 {
-                    var result = await mediator.Send(new Query());
+                    var result = await handler.ExecuteAsync(ct);
                     return Results.Ok(result);
                 })
                 .WithTags("Buildings")
@@ -34,9 +32,9 @@ namespace RoomService.API.Features.Buildings
                 .Produces<List<Response>>(StatusCodes.Status200OK);
             }
         }
-        public class Handler(RoomDbContext dbContext) : IRequestHandler<Query, ApiResponse<List<Response>>>
+        public class Handler(RoomDbContext dbContext)
         {
-            public async Task<ApiResponse<List<Response>>> Handle(Query request, CancellationToken cancellationToken)
+            public async Task<ApiResponse<List<Response>>> ExecuteAsync(CancellationToken cancellationToken)
             {
                 var buildings = await dbContext.Buildings
                     .AsNoTracking()
