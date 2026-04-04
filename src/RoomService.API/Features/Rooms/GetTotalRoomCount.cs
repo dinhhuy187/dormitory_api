@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Carter;
+using Shared.Endpoints;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Enum;
@@ -14,9 +14,9 @@ namespace RoomService.API.Features.Rooms
     public static class GetTotalRoomCount
     {
         public record Query(Guid? BuildingId) : IRequest<ApiResponse<Dictionary<string, int>>>;
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapGet("/api/rooms/count", async ([AsParameters] Query query, IMediator mediator) =>
                 {

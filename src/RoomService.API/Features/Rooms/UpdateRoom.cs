@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -41,9 +41,9 @@ namespace RoomService.API.Features.Rooms
             }
         }
 
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapPut("/api/rooms/{id:guid}", async (Guid id, [FromBody] RequestBody body, IMediator mediator) =>
                 {

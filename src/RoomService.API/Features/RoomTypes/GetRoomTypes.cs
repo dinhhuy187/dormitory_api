@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Infrastructure.Database;
@@ -16,9 +16,9 @@ namespace RoomService.API.Features.RoomTypes
             decimal BasePrice,
             List<string> Amenities
         );
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapGet("/api/rooms/roomtypes", async (IMediator mediator) =>
                 {

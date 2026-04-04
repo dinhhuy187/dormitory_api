@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Domain.Entities;
 using MediatR;
@@ -24,9 +24,9 @@ namespace Identity.API.Features.Auth
                 .MaximumLength(100).WithMessage("Họ và tên không được vượt quá 100 ký tự");
             }
         }
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapPost("/api/auth/register", async ([FromBody] Command command, IMediator mediator) =>
                 {

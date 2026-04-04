@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Enum;
@@ -26,9 +26,9 @@ namespace RoomService.API.Features.Rooms
             string RoomTypeName, // Lấy từ bảng RoomType
             decimal BasePrice);
 
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapGet("/api/rooms/{id:guid}", async (Guid id, IMediator mediator) =>
                 {

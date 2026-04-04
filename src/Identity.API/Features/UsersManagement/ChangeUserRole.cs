@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Domain.Entities;
 using MediatR;
@@ -25,9 +25,9 @@ namespace Identity.API.Features.UsersManagement
                     .WithMessage("Tên Role không hợp lệ. Phải là một trong các giá trị: Admin, Manager, SeniorManager, Student.");
             }
         }
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapPut("/api/auth/users/{id}/role", async (string id, [FromBody] RequestBody body, IMediator mediator) =>
                 {

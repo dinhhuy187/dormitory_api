@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Carter;
+using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Domain.Entities;
 using Identity.API.Infrastructure.Authentication;
@@ -22,9 +22,9 @@ namespace Identity.API.Features.Auth
                 RuleFor(x => x.RefreshToken).NotEmpty().WithMessage("Refresh token không được để trống");
             }
         }
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapPost("/api/auth/refresh-token", async ([FromBody] Command command, IMediator mediator) =>
                 {

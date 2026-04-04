@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Infrastructure.Database;
 using MediatR;
@@ -40,9 +40,9 @@ namespace Identity.API.Features.UsersManagement
                     .WithMessage("Trạng thái chỉ được phép lọc theo 'active' hoặc 'locked'.");
             }
         }
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapGet("/api/auth/users", async ([AsParameters] Query query, IMediator mediator) =>
                 {

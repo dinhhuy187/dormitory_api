@@ -1,4 +1,3 @@
-using Carter;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +6,7 @@ using RoomService.API.Domain.Entities;
 using RoomService.API.Domain.Enum;
 using RoomService.API.Infrastructure.Database;
 using Shared;
+using Shared.Endpoints;
 
 namespace RoomService.API.Features.Rooms
 {
@@ -32,9 +32,9 @@ namespace RoomService.API.Features.Rooms
             }
         }
 
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapPost("/api/rooms", async ([FromBody] Command command, IMediator mediator) =>
                 {

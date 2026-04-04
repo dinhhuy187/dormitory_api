@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using DotNetEnv;
 using FluentValidation;
 using Identity.API.Domain.Entities;
@@ -7,6 +7,7 @@ using Identity.API.Infrastructure.Database;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Shared;
+using System.Reflection;
 
 Env.Load();
 
@@ -28,7 +29,7 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
-builder.Services.AddCarter();
+builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
@@ -81,6 +82,6 @@ if (app.Environment.IsDevelopment())
     }
 }
 app.UseAuthorization();
-app.MapCarter();
+app.MapEndpoints();
 
 app.Run();

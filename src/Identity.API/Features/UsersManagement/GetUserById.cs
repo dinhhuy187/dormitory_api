@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using FluentValidation;
 using Identity.API.Infrastructure.Database;
 using MediatR;
@@ -25,9 +25,9 @@ namespace Identity.API.Features.UsersManagement
                     .NotEmpty().WithMessage("ID người dùng không được để trống.");
             }
         }
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapGet("/api/auth/users/{id}", async (string id, IMediator mediator) =>
                 {

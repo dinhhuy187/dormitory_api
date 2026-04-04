@@ -1,10 +1,12 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
-using Carter;
 using DotNetEnv;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Infrastructure.Database;
 using Shared;
+using Shared.Endpoints;
+using Shared.Extensions;
 
 Env.Load();
 
@@ -28,12 +30,8 @@ builder.Services.AddOpenApi(options =>
 builder.AddNpgsqlDbContext<RoomDbContext>("roomdb");
 
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
-builder.Services.AddMediatR(cfg =>
-{
-    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
-    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
-});
-builder.Services.AddCarter();
+builder.Services.AddHandlersFromAssemblyContaining<Program>();
+builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -64,6 +62,6 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.MapCarter();
+app.MapEndpoints();
 
 app.Run();

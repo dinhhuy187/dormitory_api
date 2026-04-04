@@ -1,4 +1,4 @@
-using Carter;
+using Shared.Endpoints;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -48,9 +48,9 @@ namespace RoomService.API.Features.Rooms
             decimal BasePrice
         );
 
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapGet("/api/rooms", async ([AsParameters] Query query, IMediator mediator) =>
                 {

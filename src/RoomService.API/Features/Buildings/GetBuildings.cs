@@ -1,9 +1,9 @@
-using Carter;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Domain.Enum;
 using RoomService.API.Infrastructure.Database;
 using Shared;
+using Shared.Endpoints;
 
 namespace RoomService.API.Features.Buildings
 {
@@ -19,9 +19,9 @@ namespace RoomService.API.Features.Buildings
             int TotalFloors,
             bool IsActive
             );
-        public class Endpoint : ICarterModule
+        public class Endpoint : IEndpoint
         {
-            public void AddRoutes(IEndpointRouteBuilder app)
+            public void MapEndpoint(IEndpointRouteBuilder app)
             {
                 app.MapGet("/api/rooms/buildings", async (IMediator mediator) =>
                 {
