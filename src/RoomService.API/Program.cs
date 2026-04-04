@@ -4,7 +4,6 @@ using DotNetEnv;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Infrastructure.Database;
-using Shared;
 using Shared.Endpoints;
 using Shared.Extensions;
 

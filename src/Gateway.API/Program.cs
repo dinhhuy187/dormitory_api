@@ -1,5 +1,5 @@
 using DotNetEnv;
-using Shared;
+using Shared.Extensions;
 
 Env.Load();
 

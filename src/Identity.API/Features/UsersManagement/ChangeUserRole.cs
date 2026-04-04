@@ -37,6 +37,7 @@ namespace Identity.API.Features.UsersManagement
                 })
                 .WithTags("Users Management")
                 .WithName("ChangeUserRole")
+                .AddEndpointFilter<ValidationFilter<Command>>()
                 .RequireAuthorization(policy => policy.RequireRole("Admin"))
                 .Produces(StatusCodes.Status204NoContent);
             }

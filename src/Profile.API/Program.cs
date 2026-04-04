@@ -1,11 +1,10 @@
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Profile.API.Data;
 using Profile.API.Services;
-using System.Text;
 using Shared;
+using Shared.Extensions;
 
 Env.Load();
 

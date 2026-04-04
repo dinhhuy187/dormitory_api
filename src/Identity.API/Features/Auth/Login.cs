@@ -36,6 +36,7 @@ namespace Identity.API.Features.Auth
                 })
                 .WithTags("Auth")
                 .WithName("Login")
+                .AddEndpointFilter<ValidationFilter<Command>>()
                 .Produces<Response>(StatusCodes.Status200OK);
             }
         }

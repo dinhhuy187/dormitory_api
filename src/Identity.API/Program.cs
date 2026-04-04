@@ -6,7 +6,6 @@ using Identity.API.Infrastructure.Authentication;
 using Identity.API.Infrastructure.Database;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Shared;
 using System.Reflection;
 using Shared.Extensions;
 

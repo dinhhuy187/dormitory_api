@@ -32,6 +32,7 @@ namespace Identity.API.Features.Auth
                 })
                 .WithTags("Auth")
                 .WithName("RefreshToken")
+                .AddEndpointFilter<ValidationFilter<Command>>()
                 .Produces<Response>(StatusCodes.Status200OK);
             }
         }

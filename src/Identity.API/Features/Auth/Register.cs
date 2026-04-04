@@ -34,6 +34,7 @@ namespace Identity.API.Features.Auth
                 })
                 .WithTags("Auth")
                 .WithName("Register")
+                .AddEndpointFilter<ValidationFilter<Command>>()
                 .Produces(StatusCodes.Status204NoContent);
             }
         }

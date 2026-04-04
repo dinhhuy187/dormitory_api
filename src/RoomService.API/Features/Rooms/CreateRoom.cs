@@ -45,6 +45,7 @@ namespace RoomService.API.Features.Rooms
                 .WithTags("Rooms")
                 .WithName("CreateRoom")
                 .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager", "SeniorManager"))
+                .AddEndpointFilter<ValidationFilter<Command>>()
                 .Produces(StatusCodes.Status201Created);
             }
         }

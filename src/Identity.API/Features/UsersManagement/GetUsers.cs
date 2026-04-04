@@ -51,6 +51,7 @@ namespace Identity.API.Features.UsersManagement
                 .WithTags("Users Management")
                 .WithName("GetUsers")
                 .RequireAuthorization(policy => policy.RequireRole("Admin"))
+                .AddEndpointFilter<ValidationFilter<Query>>()
                 .Produces<List<Response>>(StatusCodes.Status200OK);
             }
         }

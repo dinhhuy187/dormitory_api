@@ -59,6 +59,7 @@ namespace RoomService.API.Features.Rooms
                 .WithTags("Rooms")
                 .WithName("GetRooms")
                 .RequireAuthorization()
+                .AddEndpointFilter<ValidationFilter<Query>>()
                 .Produces<List<Response>>(StatusCodes.Status200OK);
             }
         }
