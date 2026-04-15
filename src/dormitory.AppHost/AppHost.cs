@@ -25,4 +25,7 @@ var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithExternalHttpEndpoints();
 
 
+builder.AddProject<Projects.BookingService_API>("bookingservice-api");
+
+
 builder.Build().Run();
