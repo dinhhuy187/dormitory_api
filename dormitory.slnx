@@ -4,7 +4,8 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/BookingService/BookingService.API/BookingService.API.csproj" />
-    <Project Path="src/BookingService/BookingService.Domain/BookingService.Domain.csproj" Id="f797c6d1-88f0-4c90-85e5-1cd899de728e" />
+    <Project Path="src/BookingService/BookingService.Application/BookingService.Application.csproj" />
+    <Project Path="src/BookingService/BookingService.Domain/BookingService.Domain.csproj" />
     <Project Path="src/dormitory.AppHost/dormitory.AppHost.csproj" />
     <Project Path="src/dormitory.ServiceDefaults/dormitory.ServiceDefaults.csproj" />
     <Project Path="src/Gateway.API/Gateway.API.csproj" />
