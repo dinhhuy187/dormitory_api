@@ -9,6 +9,7 @@ builder.AddDockerComposeEnvironment("compose");
 var identityDb = builder.AddConnectionString("identitydb");
 var profileDb = builder.AddConnectionString("profiledb");
 var roomDb = builder.AddConnectionString("roomdb");
+var bookingDb = builder.AddConnectionString("bookingdb");
 
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
     .WithReference(identityDb);
@@ -19,13 +20,14 @@ var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
 var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
     .WithReference(roomDb);
 
+var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
+    .WithReference(bookingDb);
+
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(identityApi)
     .WithReference(roomApi)
+    .WithReference(profileApi)
+    .WithReference(bookingApi)
     .WithExternalHttpEndpoints();
-
-
-builder.AddProject<Projects.BookingService_API>("bookingservice-api");
-
 
 builder.Build().Run();

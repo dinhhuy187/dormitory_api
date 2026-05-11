@@ -4,5 +4,5 @@ namespace BookingService.Application.Abtractions.Data;
 
 public interface IAcademicTermRepository
 {
-    Task<AcademicTerm> GetTermByNameAsync(string termName, CancellationToken cancellationToken);    
+    Task<AcademicTerm?> GetTermByNameAsync(string termName, CancellationToken cancellationToken);    
 }

@@ -64,9 +64,13 @@ public class Booking : Entity, IAggregateRoot
             throw new DomainException($"Cổng đăng ký cho {term.TermName} hiện đang đóng. Bạn không thể đặt phòng lúc này.");
 
         // 2. Kiểm tra giới hạn số lượng phòng của sinh viên
-        var hasExceededLimit = await rulesChecker.HasExceededActiveBookingLimitAsync(userId, ct);
+        var hasExceededLimit = await rulesChecker.HasExceededActiveBookingLimitAsync(userId, term.TermName, ct);
         if (hasExceededLimit)
             throw new DomainException("Bạn đã đạt giới hạn số lượng phòng được phép đặt.");
+        
+        var isRoomAvailable = await rulesChecker.IsRoomAvailableForBookingAsync(roomId, ct);
+        if (!isRoomAvailable)
+            throw new DomainException("Phòng bạn chọn không tồn tại, đang bảo trì hoặc đã kín chỗ.");
 
         var booking = new Booking(Guid.NewGuid(), roomId, userId, term, pricePerMonth);
 

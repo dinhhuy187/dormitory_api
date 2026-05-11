@@ -6,6 +6,7 @@
     <Project Path="src/BookingService/BookingService.API/BookingService.API.csproj" />
     <Project Path="src/BookingService/BookingService.Application/BookingService.Application.csproj" />
     <Project Path="src/BookingService/BookingService.Domain/BookingService.Domain.csproj" />
+    <Project Path="src/BookingService/BookingService.Infrastructure/BookingService.Infrastructure.csproj" />
     <Project Path="src/dormitory.AppHost/dormitory.AppHost.csproj" />
     <Project Path="src/dormitory.ServiceDefaults/dormitory.ServiceDefaults.csproj" />
     <Project Path="src/Gateway.API/Gateway.API.csproj" />
