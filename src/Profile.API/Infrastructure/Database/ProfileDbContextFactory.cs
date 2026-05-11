@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Profile.API.Data;
+namespace Profile.API.Infrastructure.Database;
 
 public class ProfileDbContextFactory : IDesignTimeDbContextFactory<ProfileDbContext>
 {
@@ -10,6 +10,7 @@ public class ProfileDbContextFactory : IDesignTimeDbContextFactory<ProfileDbCont
         var config = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json")
+            .AddUserSecrets<ProfileDbContextFactory>()
             .Build();
 
         var optionsBuilder = new DbContextOptionsBuilder<ProfileDbContext>();

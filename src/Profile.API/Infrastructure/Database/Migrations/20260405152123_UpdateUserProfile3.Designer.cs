@@ -5,15 +5,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Profile.API.Data;
+using Profile.API.Infrastructure.Database;
 
 #nullable disable
 
-namespace Profile.API.Data.Migrations
+namespace Profile.API.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(ProfileDbContext))]
-    [Migration("20260329143943_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260405152123_UpdateUserProfile3")]
+    partial class UpdateUserProfile3
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace Profile.API.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Profile.API.Models.UserProfile", b =>
+            modelBuilder.Entity("Profile.API.Domain.Entities.UserProfile", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -112,10 +112,12 @@ namespace Profile.API.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Id");
+
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("UserProfiles");
+                    b.ToTable("UserProfile", (string)null);
                 });
 #pragma warning restore 612, 618
         }

@@ -1,16 +1,16 @@
 using DotNetEnv;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Profile.API.Data;
-using Profile.API.Services;
+using Profile.API.Infrastructure.Database;
 using Shared;
+using Shared.Endpoints;
 using Shared.Extensions;
 
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
-builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 
 builder.AddNpgsqlDbContext<ProfileDbContext>("profiledb");
@@ -18,12 +18,13 @@ builder.AddNpgsqlDbContext<ProfileDbContext>("profiledb");
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 
 builder.Services.AddAuthorization();
-builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
+builder.Services.AddHandlersFromAssemblyContaining<Program>();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddOpenApi();
 
 // Add services to the container.
-
+builder.Services.AddEndpoints(typeof(Program).Assembly);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -41,5 +42,5 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
+app.MapEndpoints();
 app.Run();
