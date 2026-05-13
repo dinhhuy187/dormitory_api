@@ -9,6 +9,7 @@ builder.AddDockerComposeEnvironment("compose");
 var identityDb = builder.AddConnectionString("identitydb");
 var profileDb = builder.AddConnectionString("profiledb");
 var roomDb = builder.AddConnectionString("roomdb");
+var communityDb = builder.AddConnectionString("communitydb");
 
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
     .WithReference(identityDb);
@@ -18,6 +19,9 @@ var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
 
 var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
     .WithReference(roomDb);
+
+var communityApi = builder.AddProject<Projects.Community_API>("community-api")
+    .WithReference(communityDb);
 
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(identityApi)

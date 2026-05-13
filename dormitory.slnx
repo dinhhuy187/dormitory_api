@@ -3,6 +3,7 @@
     <File Path="Directory.Packages.props" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Community.API/Community.API.csproj" />
     <Project Path="src/dormitory.AppHost/dormitory.AppHost.csproj" />
     <Project Path="src/dormitory.ServiceDefaults/dormitory.ServiceDefaults.csproj" />
     <Project Path="src/Gateway.API/Gateway.API.csproj" />
