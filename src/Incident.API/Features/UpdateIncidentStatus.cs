@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
+using Shared.Events;
+using MassTransit;
 
 namespace Incident.API.Features;
 
@@ -55,7 +57,7 @@ public static class UpdateIncidentStatus
         }
     }
 
-    public class Handler(IncidentDbContext dbContext)
+    public class Handler(IncidentDbContext dbContext, IPublishEndpoint publishEndpoint)
     {
         public async Task<Response> ExecuteAsync(Guid id, Request req, CancellationToken ct)
         {
@@ -65,10 +67,21 @@ public static class UpdateIncidentStatus
             if (incident is null)
                 throw new ApiException($"Không tìm thấy incident với id {id}.", StatusCodes.Status404NotFound);
 
+            var oldStatus = incident.Status.ToString(); // khai báo trước khi đổi
+
             incident.Status = Enum.Parse<IncidentStatus>(req.Status, ignoreCase: true);
             incident.UpdatedAt = DateTime.UtcNow;
 
             await dbContext.SaveChangesAsync(ct);
+
+            await publishEndpoint.Publish(new IncidentStatusChangedEvent(
+                IncidentId: incident.Id,
+                RoomId: incident.RoomId,
+                ReporterId: incident.ReporterId,
+                OldStatus: oldStatus,
+                NewStatus: incident.Status.ToString(),
+                ChangedAt: incident.UpdatedAt
+            ), ct);
 
             return new Response(incident.Id, incident.Status.ToString(), incident.UpdatedAt);
         }

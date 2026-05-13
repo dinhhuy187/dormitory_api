@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
 using Shared.Extensions;
+using MassTransit;
 
 Env.Load();
 
@@ -17,6 +18,18 @@ builder.AddNpgsqlDbContext<IncidentDbContext>("incidentdb");
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        // Aspire tự inject connection string từ WithReference(rabbitMq)
+        var connectionString = builder.Configuration.GetConnectionString("rabbitmq");
+        cfg.Host(connectionString);
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
 builder.Services.AddHandlersFromAssemblyContaining<Program>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddEndpoints(typeof(Program).Assembly);
