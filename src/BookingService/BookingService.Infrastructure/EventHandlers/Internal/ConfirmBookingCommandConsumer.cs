@@ -11,9 +11,6 @@ public class ConfirmBookingCommandConsumer(IConfirmBookingUseCase useCase, ILogg
     {
         logger.LogInformation("Nhận lệnh XÁC NHẬN Booking từ Saga: {BookingId}", context.Message.BookingId);
 
-        // Gọi thẳng vào UseCase chuẩn mực mà chúng ta đã xây dựng ở tầng Application
-        // Lưu ý: Context.Message.BookingId được truyền thẳng vào thay vì truyền nguyên object request 
-        // (tùy thuộc vào cách bạn thiết kế interface của IConfirmBookingUseCase)
         var result = await useCase.ExecuteAsync(context.Message.BookingId, context.CancellationToken);
 
         if (!result.IsSuccess)

@@ -62,7 +62,7 @@ public static class DependencyInjection
         services.AddScoped<IRoomPricingService, RoomPricingService>();
         services.AddScoped<IBookingRulesChecker, BookingRulesChecker>();
         services.AddScoped<IRegistrationPeriodChecker, RegistrationPeriodChecker>();
-        
+        services.AddScoped<IFeeTemplateRepository, FeeTemplateRepository>();    
         // Nhớ đăng ký thêm các service khác ở đây
         // services.AddScoped<IAcademicTermRepository, AcademicTermRepository>();
         // services.AddScoped<IRoomPricingService, RoomPricingService>();

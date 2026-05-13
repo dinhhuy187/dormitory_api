@@ -29,6 +29,14 @@ builder.Services.AddOpenApi(options =>
     options.CreateSchemaReferenceId = (type) => type.Type.FullName ?? type.Type.Name;
 });
 
+builder.Services.AddHttpClient("RoomServiceClient", client =>
+{
+    client.BaseAddress = new Uri("http://room-api"); 
+})
+.AddStandardResilienceHandler();
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
@@ -41,16 +49,18 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
     dbContext.Database.Migrate();
-    // try
-    // {
-    //     await SeedData.SeedAsync(dbContext);
-    // }
-    // catch (Exception ex)
-    // {
-    //     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    //     logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
-    // }
+    try
+    {
+        await SeedData.SeedAsync(scope.ServiceProvider);
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
+    }
 }
+
+app.UseAuthorization();
 
 app.MapBookingEndpoints();
 app.Run();

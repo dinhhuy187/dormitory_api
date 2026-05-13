@@ -21,7 +21,9 @@ var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
     .WithReference(roomDb);
 
 var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
-    .WithReference(bookingDb);
+    .WithReference(bookingDb)
+    .WithReference(roomApi) 
+    .WaitFor(roomApi);
 
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(identityApi)

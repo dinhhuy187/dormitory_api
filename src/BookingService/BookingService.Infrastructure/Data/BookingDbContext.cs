@@ -11,6 +11,7 @@ public class BookingDbContext(DbContextOptions<BookingDbContext> options) : DbCo
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<AcademicTermData> AcademicTerms { get; set; } 
     public DbSet<RoomData> Rooms { get; set; }
+    public DbSet<FeeTemplate> FeeTemplates { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

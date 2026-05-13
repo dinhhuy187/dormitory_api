@@ -8,17 +8,18 @@ public class RegistrationPeriodChecker(BookingDbContext dbContext) : IRegistrati
 {
     public async Task<bool> IsRegistrationPortalOpenAsync(string termName, CancellationToken cancellationToken)
     {
-       var term = await dbContext.AcademicTerms
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.TermName == termName, cancellationToken);
+    //    var term = await dbContext.AcademicTerms
+    //         .AsNoTracking()
+    //         .FirstOrDefaultAsync(t => t.TermName == termName, cancellationToken);
 
-        if (term == null)
-        {
-            return false; 
-        }
+    //     if (term == null)
+    //     {
+    //         return false; 
+    //     }
 
-        var now = DateTime.UtcNow;
+    //     var now = DateTime.UtcNow;
 
-        return now >= term.StartDate.AddDays(-20) && now <= term.StartDate;
+    //     return now >= term.StartDate.AddDays(-20) && now <= term.StartDate;
+        return true;
     }
 }

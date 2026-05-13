@@ -11,6 +11,7 @@ namespace BookingService.Application.UseCases.Bookings.Commands.CreateBooking;
 
 public class CreateBookingUseCase(
     IBookingRepository bookingRepository,
+    IFeeTemplateRepository feeTemplateRepository,
     IAcademicTermRepository academicTermRepository,
     IUnitOfWork unitOfWork,
     IRoomPricingService roomPricingService,
@@ -42,9 +43,27 @@ public class CreateBookingUseCase(
                 registrationPeriodChecker,
                 cancellationToken);
             
-            // 4. Nghiệp vụ thực tế: Thêm các loại phụ phí cố định bắt buộc
-            booking.AddFee("Phí làm hồ sơ lưu trú", 60000, isRefundable: false);
-            booking.AddFee("Tiền thế chân tài sản", 100000, isRefundable: true);
+            var mandatoryFees = await feeTemplateRepository.GetMandatoryFeesAsync(cancellationToken);
+            foreach (var fee in mandatoryFees)
+            {
+                booking.AddFee(fee.FeeName, fee.Amount, fee.IsRefundable);
+            }
+
+            // 4.2 Thêm các loại phí TÙY CHỌN do sinh viên chọn trên UI (BHYT...)
+            if (request.SelectedOptionalFeeCodes != null && request.SelectedOptionalFeeCodes.Count != 0)
+            {
+                var optionalFees = await feeTemplateRepository.GetFeesByCodesAsync(request.SelectedOptionalFeeCodes, cancellationToken);
+                
+                foreach (var fee in optionalFees)
+                {
+                    // Lớp bảo mật phụ: Đảm bảo UI không cố tình truyền mã của một khoản phí không tồn tại 
+                    // hoặc nhầm lẫn với phí bắt buộc đã add ở trên.
+                    if (!fee.IsMandatory) 
+                    {
+                        booking.AddFee(fee.FeeName, fee.Amount, fee.IsRefundable);
+                    }
+                }
+            }
 
             bookingRepository.Add(booking);
 

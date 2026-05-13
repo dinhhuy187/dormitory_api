@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BookingService.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(BookingDbContext))]
-    [Migration("20260510042104_InitialCreate")]
+    [Migration("20260513082603_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -85,6 +85,41 @@ namespace BookingService.Infrastructure.Data.Migrations
                     b.HasIndex("BookingId");
 
                     b.ToTable("BookingFees", (string)null);
+                });
+
+            modelBuilder.Entity("BookingService.Domain.Entities.FeeTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("FeeCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("FeeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsMandatory")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRefundable")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FeeTemplates", (string)null);
                 });
 
             modelBuilder.Entity("BookingService.Infrastructure.Models.AcademicTermData", b =>

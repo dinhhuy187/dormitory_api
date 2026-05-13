@@ -51,6 +51,23 @@ namespace BookingService.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "FeeTemplates",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    FeeCode = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    FeeName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    IsMandatory = table.Column<bool>(type: "boolean", nullable: false),
+                    IsRefundable = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FeeTemplates", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "InboxState",
                 columns: table => new
                 {
@@ -214,6 +231,9 @@ namespace BookingService.Infrastructure.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "BookingFees");
+
+            migrationBuilder.DropTable(
+                name: "FeeTemplates");
 
             migrationBuilder.DropTable(
                 name: "OutboxMessage");
