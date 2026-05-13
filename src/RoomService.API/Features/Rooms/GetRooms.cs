@@ -13,6 +13,7 @@ namespace RoomService.API.Features.Rooms
             string? Search,
             Guid? BuildingId,
             RoomStatus? RoomStatus,
+            Guid? RoomTypeId,
             int Page = 1,
             int PageSize = 20
             );
@@ -28,6 +29,8 @@ namespace RoomService.API.Features.Rooms
                     .WithMessage("Invalid RoomStatus value ! Allowed values: Available, Full, Maintenance");
                 RuleFor(x => x.BuildingId).NotEmpty().When(x => x.BuildingId.HasValue)
                     .WithMessage("BuildingId must be a valid GUID");
+                RuleFor(x => x.RoomTypeId).NotEmpty().When(x => x.RoomTypeId.HasValue)
+                    .WithMessage("RoomTypeId must be a valid GUID");
             }
         }
 
@@ -44,7 +47,8 @@ namespace RoomService.API.Features.Rooms
             RoomStatus RoomStatus,
             Guid RoomTypeId,
             string RoomTypeName, // Lấy từ bảng RoomType
-            decimal BasePrice
+            decimal BasePrice,
+            List<string> Amenities
         );
 
         public class Endpoint : IEndpoint
@@ -91,6 +95,11 @@ namespace RoomService.API.Features.Rooms
                     queryable = queryable.Where(r => r.RoomStatus == request.RoomStatus.Value);
                 }
 
+                if (request.RoomTypeId.HasValue)
+                {
+                    queryable = queryable.Where(r => r.RoomTypeId == request.RoomTypeId.Value);
+                }
+
                 var totalCount = await queryable.CountAsync(cancellationToken);
 
                 var items = await queryable
@@ -114,7 +123,8 @@ namespace RoomService.API.Features.Rooms
                         r.RoomStatus,
                         r.RoomTypeId,
                         r.RoomType.Name,
-                        r.RoomType.BasePrice
+                        r.RoomType.BasePrice,
+                        r.RoomType.Amenities
                     ))
                     .ToListAsync(cancellationToken);
 
