@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using BookingService.Application.Common.Models;
 using BookingService.Application.UseCases.Bookings.Commands.CreateBooking;
+using BookingService.Application.UseCases.Bookings.Queries.GetUserBookings;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
 
@@ -12,6 +14,41 @@ public static class BookingEndpoints
         var group = app.MapGroup("/api/bookings")
                        .WithTags("Bookings")
                        .RequireAuthorization(); // Bắt buộc phải có token đăng nhập (JWT)
+
+        // API XEM TẤT CẢ ĐƠN ĐẶT PHÒNG CỦA USER
+        group.MapGet("/", async (
+            Guid? userId,
+            HttpContext httpContext,
+            [FromServices] IGetUserBookingsUseCase useCase,
+            CancellationToken ct) =>
+        {
+            var currentUserId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                               ?? httpContext.User.FindFirstValue("sub");
+
+            if (string.IsNullOrWhiteSpace(currentUserId) || !Guid.TryParse(currentUserId, out var currentUserGuid))
+            {
+                return Results.Unauthorized();
+            }
+
+            var isAdminOrManager = httpContext.User.IsInRole("Admin") || httpContext.User.IsInRole("Manager");
+            var targetUserId = userId ?? currentUserGuid;
+
+            if (!isAdminOrManager && targetUserId != currentUserGuid)
+            {
+                return Results.Forbid();
+            }
+
+            var result = await useCase.ExecuteAsync(targetUserId, ct);
+            if (!result.IsSuccess)
+            {
+                return Results.BadRequest(new { Error = result.ErrorMessage });
+            }
+
+            return Results.Ok(new ApiResponse<List<BookingItemResponse>>(result.Value!));
+        })
+        .WithName("GetUserBookings")
+        .Produces<List<BookingItemResponse>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status403Forbidden);
 
         // API TẠO ĐƠN ĐẶT PHÒNG
         group.MapPost("/", async (
