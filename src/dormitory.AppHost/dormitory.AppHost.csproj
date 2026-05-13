@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.Docker" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +20,7 @@
     <ProjectReference Include="..\Profile.API\Profile.API.csproj" />
     <ProjectReference Include="..\RoomService.API\RoomService.API.csproj" />
     <ProjectReference Include="..\Community.API\Community.API.csproj" />
+    <ProjectReference Include="..\Incident.API\Incident.API.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,3 +1,5 @@
+using Aspire.Hosting.Docker.Resources.ServiceNodes;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddDockerComposeEnvironment("compose");
@@ -11,6 +13,12 @@ var profileDb = builder.AddConnectionString("profiledb");
 var roomDb = builder.AddConnectionString("roomdb");
 var communityDb = builder.AddConnectionString("communitydb");
 
+var incidentDb = builder.AddConnectionString("incidentdb");
+
+
+var rabbitMq = builder.AddRabbitMQ("rabbitmq")
+    .WithManagementPlugin();
+
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
     .WithReference(identityDb);
 
@@ -23,9 +31,14 @@ var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
 var communityApi = builder.AddProject<Projects.Community_API>("community-api")
     .WithReference(communityDb);
 
+var incidentApi = builder.AddProject<Projects.Incident_API>("incident-api")
+    .WithReference(incidentDb)
+    .WithReference(rabbitMq);
+
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(identityApi)
     .WithReference(roomApi)
+    .WithReference(incidentApi)
     .WithExternalHttpEndpoints();
 
 
