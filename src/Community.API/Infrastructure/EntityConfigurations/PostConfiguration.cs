@@ -27,6 +27,8 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
               builder.Property(p => p.IsHidden)
                      .HasDefaultValue(false);
 
+              builder.Property(p => p.IsPinned).HasDefaultValue(false);
+
               builder.HasIndex(p => p.AuthorId);
               builder.HasIndex(p => p.PostType);
               builder.HasIndex(p => p.IsHidden);
