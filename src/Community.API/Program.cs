@@ -4,6 +4,7 @@ using Community.API.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Shared.Endpoints;
 using Shared.Extensions;
+using Shared;
 
 Env.Load();
 
@@ -12,7 +13,7 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 
 builder.AddNpgsqlDbContext<CommunityDbContext>("communitydb");
-
+builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 
