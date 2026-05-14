@@ -11,9 +11,11 @@ builder.AddDockerComposeEnvironment("compose");
 var identityDb = builder.AddConnectionString("identitydb");
 var profileDb = builder.AddConnectionString("profiledb");
 var roomDb = builder.AddConnectionString("roomdb");
+var communityDb = builder.AddConnectionString("communitydb");
+
 var incidentDb = builder.AddConnectionString("incidentdb");
 
-// RabbitMQ
+
 var rabbitMq = builder.AddRabbitMQ("rabbitmq")
     .WithManagementPlugin();
 
@@ -25,6 +27,9 @@ var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
 
 var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
     .WithReference(roomDb);
+
+var communityApi = builder.AddProject<Projects.Community_API>("community-api")
+    .WithReference(communityDb);
 
 var incidentApi = builder.AddProject<Projects.Incident_API>("incident-api")
     .WithReference(incidentDb)
