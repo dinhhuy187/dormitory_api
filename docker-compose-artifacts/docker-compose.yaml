@@ -9,6 +9,21 @@ services:
     networks:
       - "aspire"
     restart: "always"
+  rabbitmq:
+    image: "docker.io/library/rabbitmq:4.2-management"
+    environment:
+      RABBITMQ_DEFAULT_USER: "guest"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD}"
+    expose:
+      - "5672"
+      - "15672"
+    volumes:
+      - type: "volume"
+        target: "/var/lib/rabbitmq"
+        source: "dormitory.apphost-00cc8309c5-rabbitmq-data"
+        read_only: false
+    networks:
+      - "aspire"
   identity-api:
     image: "${IDENTITY_API_IMAGE}"
     environment:
@@ -61,6 +76,12 @@ services:
       ROOM_API_HTTP: "http://room-api:${ROOM_API_PORT}"
       services__room-api__http__0: "http://room-api:${ROOM_API_PORT}"
       ROOM_API_HTTPS: "https://room-api:${ROOM_API_PORT}"
+      ConnectionStrings__rabbitmq: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: "guest"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      RABBITMQ_URI: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "booking-api"
@@ -69,6 +90,40 @@ services:
     depends_on:
       room-api:
         condition: "service_started"
+    networks:
+      - "aspire"
+  community-api:
+    image: "${COMMUNITY_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${COMMUNITY_API_PORT}"
+      ConnectionStrings__communitydb: "${COMMUNITYDB}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "community-api"
+    expose:
+      - "${COMMUNITY_API_PORT}"
+    networks:
+      - "aspire"
+  incident-api:
+    image: "${INCIDENT_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${INCIDENT_API_PORT}"
+      ConnectionStrings__incidentdb: "${INCIDENTDB}"
+      ConnectionStrings__rabbitmq: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: "guest"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      RABBITMQ_URI: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "incident-api"
+    expose:
+      - "${INCIDENT_API_PORT}"
     networks:
       - "aspire"
   gateway-api:
@@ -89,6 +144,12 @@ services:
       BOOKING_API_HTTP: "http://booking-api:${BOOKING_API_PORT}"
       services__booking-api__http__0: "http://booking-api:${BOOKING_API_PORT}"
       BOOKING_API_HTTPS: "https://booking-api:${BOOKING_API_PORT}"
+      COMMUNITY_API_HTTP: "http://community-api:${COMMUNITY_API_PORT}"
+      services__community-api__http__0: "http://community-api:${COMMUNITY_API_PORT}"
+      COMMUNITY_API_HTTPS: "https://community-api:${COMMUNITY_API_PORT}"
+      INCIDENT_API_HTTP: "http://incident-api:${INCIDENT_API_PORT}"
+      services__incident-api__http__0: "http://incident-api:${INCIDENT_API_PORT}"
+      INCIDENT_API_HTTPS: "https://incident-api:${INCIDENT_API_PORT}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "gateway-api"
@@ -99,3 +160,6 @@ services:
 networks:
   aspire:
     driver: "bridge"
+volumes:
+  dormitory.apphost-00cc8309c5-rabbitmq-data:
+    driver: "local"
