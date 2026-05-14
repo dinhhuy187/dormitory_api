@@ -15,7 +15,7 @@ public static class HidePost
     {
         public void MapEndpoint(IEndpointRouteBuilder app)
         {
-            app.MapPatch("api/posts/{id}/hide", async (
+            app.MapPatch("api/community/posts/{id}/hide", async (
                 Guid id,
                 HttpContext httpContext,
                 [FromServices] Handler handler,
@@ -33,7 +33,7 @@ public static class HidePost
             .WithTags("Posts")
             .WithName("HidePost")
             .RequireAuthorization()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status200OK);
+            .Produces<Response>(StatusCodes.Status200OK);
         }
     }
 

@@ -52,7 +52,7 @@ public static class UpdateIncidentStatus
             .WithTags("Incidents")
             .WithName("UpdateIncidentStatus")
             .RequireAuthorization(policy => policy.RequireRole("Admin", "Staff"))
-            .Produces<ApiResponse<Response>>(StatusCodes.Status200OK)
+            .Produces<Response>(StatusCodes.Status200OK)
             .ProducesValidationProblem();
         }
     }

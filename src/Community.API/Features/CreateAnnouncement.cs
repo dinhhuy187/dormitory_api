@@ -25,7 +25,7 @@ public static class CreateAnnouncement
     {
         public void MapEndpoint(IEndpointRouteBuilder app)
         {
-            app.MapPost("api/announcements", async (
+            app.MapPost("api/community/announcements", async (
                 HttpContext httpContext,
                 [FromForm] string content,
                 [FromForm] bool? isPinned,
@@ -66,7 +66,7 @@ public static class CreateAnnouncement
                     ct);
 
                 return Results.Created(
-                    $"/api/announcements/{result.Id}",
+                    $"/api/community/announcements/{result.Id}",
                     new ApiResponse<Response>(result));
             })
             .WithTags("Announcements")
@@ -74,7 +74,7 @@ public static class CreateAnnouncement
             .RequireAuthorization(policy =>
                 policy.RequireRole("Admin", "Staff"))
             .DisableAntiforgery()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status201Created);
+            .Produces<Response>(StatusCodes.Status201Created);
         }
     }
 

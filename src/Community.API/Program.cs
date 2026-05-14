@@ -20,8 +20,10 @@ builder.Services.AddAuthorization();
 builder.Services.AddHandlersFromAssemblyContaining<Program>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddEndpoints(typeof(Program).Assembly);
-builder.Services.AddOpenApi();
-
+builder.Services.AddOpenApi(options =>
+{
+    options.CreateSchemaReferenceId = (type) => type.Type.FullName ?? type.Type.Name;
+});
 var app = builder.Build();
 
 app.UseExceptionHandler();

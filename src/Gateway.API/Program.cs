@@ -28,7 +28,10 @@ app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("api/auth/openapi/v1.json", "Identity Service API");
     options.SwaggerEndpoint("api/rooms/openapi/v1.json", "Room Service API");
+    options.SwaggerEndpoint("api/profile/openapi/v1.json", "Profile Service API");
     options.SwaggerEndpoint("api/bookings/openapi/v1.json", "Booking Service API");
+    options.SwaggerEndpoint("api/community/openapi/v1.json", "Community Service API");
+    options.SwaggerEndpoint("api/incidents/openapi/v1.json", "Incident Service API");
 
     options.RoutePrefix = string.Empty;
 });

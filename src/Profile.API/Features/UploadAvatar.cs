@@ -43,7 +43,7 @@ public static class UploadAvatar
             .WithName("UploadAvatar")
             .RequireAuthorization()
             .DisableAntiforgery() // Bắt buộc khi dùng IFormFile với Minimal API
-            .Produces<ApiResponse<string>>(StatusCodes.Status200OK);
+            .Produces<string>(StatusCodes.Status200OK);
         }
     }
 

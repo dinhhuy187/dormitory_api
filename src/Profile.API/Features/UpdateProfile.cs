@@ -190,7 +190,7 @@ public static class UpdateProfile
             .WithName("UpdateProfile")
             .RequireAuthorization()
             .AddEndpointFilter<ValidationFilter<Command>>()
-            .Produces<ApiResponse<GetMyProfile.Response>>(StatusCodes.Status200OK);
+            .Produces<GetMyProfile.Response>(StatusCodes.Status200OK);
         }
     }
 

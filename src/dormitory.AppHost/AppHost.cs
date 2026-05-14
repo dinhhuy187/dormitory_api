@@ -18,7 +18,8 @@ var incidentDb = builder.AddConnectionString("incidentdb");
 
 
 var rabbitMq = builder.AddRabbitMQ("rabbitmq")
-    .WithManagementPlugin();
+    .WithManagementPlugin()
+    .WithDataVolume();
 
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
     .WithReference(identityDb);
@@ -31,7 +32,8 @@ var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
 
 var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
     .WithReference(bookingDb)
-    .WithReference(roomApi) 
+    .WithReference(roomApi)
+    .WithReference(rabbitMq) 
     .WaitFor(roomApi);
 
 var communityApi = builder.AddProject<Projects.Community_API>("community-api")
@@ -46,6 +48,7 @@ var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(roomApi)
     .WithReference(profileApi)
     .WithReference(bookingApi)
+    .WithReference(communityApi)
     .WithReference(incidentApi)
     .WithExternalHttpEndpoints();
 

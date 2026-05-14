@@ -21,7 +21,10 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
 builder.Services.AddHandlersFromAssemblyContaining<Program>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.CreateSchemaReferenceId = (type) => type.Type.FullName ?? type.Type.Name;
+});
 
 // Add services to the container.
 builder.Services.AddEndpoints(typeof(Program).Assembly);

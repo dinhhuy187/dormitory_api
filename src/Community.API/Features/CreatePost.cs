@@ -25,7 +25,7 @@ public static class CreatePost
     {
         public void MapEndpoint(IEndpointRouteBuilder app)
         {
-            app.MapPost("api/posts", async (
+            app.MapPost("api/community/posts", async (
                 HttpContext httpContext,
                 [FromForm] string content,
                 [FromForm] PostType postType,
@@ -79,14 +79,14 @@ public static class CreatePost
                     ct);
 
                 return Results.Created(
-                    $"/api/posts/{result.Id}",
+                    $"/api/community/posts/{result.Id}",
                     new ApiResponse<Response>(result));
             })
             .WithTags("Posts")
             .WithName("CreatePost")
             .RequireAuthorization()
             .DisableAntiforgery()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status201Created);
+            .Produces<Response>(StatusCodes.Status201Created);
         }
     }
 

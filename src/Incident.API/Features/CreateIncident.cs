@@ -75,7 +75,7 @@ public static class CreateIncident
             .WithTags("Incidents")
             .WithName("CreateIncident")
             .RequireAuthorization(policy => policy.RequireRole("Student"))
-            .Produces<ApiResponse<Response>>(StatusCodes.Status201Created)
+            .Produces<Response>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
         }
     }

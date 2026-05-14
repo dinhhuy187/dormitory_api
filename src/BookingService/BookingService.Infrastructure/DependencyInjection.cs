@@ -41,17 +41,8 @@ public static class DependencyInjection
 
             x.UsingRabbitMq((context, cfg) =>
             {
-                var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";
-                var username = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME") ?? "guest";
-                var password = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD") ?? "guest";
-
-                cfg.Host(host, h =>
-                {
-                    h.Username(username);
-                    h.Password(password);
-                });
-
-                // Cấu hình định tuyến (Endpoints) cho Consumers & Saga
+                var connectionString = configuration.GetConnectionString("rabbitmq");
+                cfg.Host(connectionString);
                 cfg.ConfigureEndpoints(context);
             });
         });

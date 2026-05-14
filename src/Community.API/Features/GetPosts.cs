@@ -36,7 +36,7 @@ public static class GetPosts
     {
         public void MapEndpoint(IEndpointRouteBuilder app)
         {
-            app.MapGet("api/posts", async (
+            app.MapGet("api/community/posts", async (
                 [AsParameters] Query query,
                 Handler handler,
                 CancellationToken ct) =>
@@ -47,7 +47,7 @@ public static class GetPosts
             .WithTags("Posts")
             .WithName("GetPosts")
             .RequireAuthorization()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status200OK);
+            .Produces<Response>(StatusCodes.Status200OK);
         }
     }
 

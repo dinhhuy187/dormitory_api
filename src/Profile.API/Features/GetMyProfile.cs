@@ -55,7 +55,7 @@ public static class GetMyProfile
             .WithTags("Profile")
             .WithName("GetMyProfile")
             .RequireAuthorization()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status200OK); ;
+            .Produces<Response>(StatusCodes.Status200OK); ;
         }
     }
 

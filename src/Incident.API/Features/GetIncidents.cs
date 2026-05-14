@@ -42,7 +42,7 @@ public static class GetIncidents
             .WithTags("Incidents")
             .WithName("GetIncidents")
             .RequireAuthorization(policy => policy.RequireRole("Admin", "Staff"))
-            .Produces<ApiResponse<List<IncidentDto>>>(StatusCodes.Status200OK);
+            .Produces<List<IncidentDto>>(StatusCodes.Status200OK);
         }
     }
 
