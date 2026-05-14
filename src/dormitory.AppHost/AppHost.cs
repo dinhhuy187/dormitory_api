@@ -13,6 +13,7 @@ var profileDb = builder.AddConnectionString("profiledb");
 var roomDb = builder.AddConnectionString("roomdb");
 var bookingDb = builder.AddConnectionString("bookingdb");
 var communityDb = builder.AddConnectionString("communitydb");
+var billingDb = builder.AddConnectionString("billingdb");
 
 var incidentDb = builder.AddConnectionString("incidentdb");
 
@@ -42,6 +43,9 @@ var communityApi = builder.AddProject<Projects.Community_API>("community-api")
 var incidentApi = builder.AddProject<Projects.Incident_API>("incident-api")
     .WithReference(incidentDb)
     .WithReference(rabbitMq);
+
+var billingApi = builder.AddProject<Projects.Billing_API>("billing-api")
+    .WithReference(billingDb);
 
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(identityApi)
