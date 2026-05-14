@@ -62,5 +62,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthorization();
 
+app.MapFeeTemplateEndpoints();
 app.MapBookingEndpoints();
 app.Run();

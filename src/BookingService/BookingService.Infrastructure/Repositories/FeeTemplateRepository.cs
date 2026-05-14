@@ -7,6 +7,14 @@ namespace BookingService.Infrastructure.Repositories;
 
 public class FeeTemplateRepository(BookingDbContext dbContext) : IFeeTemplateRepository
 {
+    public async Task<IReadOnlyList<FeeTemplate>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.FeeTemplates
+            .AsNoTracking()
+            .OrderByDescending(f => f.IsMandatory)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<FeeTemplate>> GetFeesByCodesAsync(IEnumerable<string> feeCodes, CancellationToken cancellationToken = default)
     {
         if (feeCodes == null || !feeCodes.Any())
