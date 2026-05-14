@@ -22,8 +22,8 @@ public static class CreateUser
                 .MaximumLength(100).WithMessage("Họ và tên không được vượt quá 100 ký tự");
             RuleFor(x => x.Role)
                 .NotEmpty().WithMessage("Role không được để trống")
-                .Must(role => new[] { "Admin", "User" }.Contains(role))
-                .WithMessage("Role phải là 'Admin' hoặc 'User'");
+                .Must(role => new[] { "admin", "manager", "seniormanager", "student" }.Contains(role.ToLower()))
+                .WithMessage("Role phải là 'admin', 'manager', 'seniormanager' hoặc 'student'");
         }
         public class Endpoint : IEndpoint
         {

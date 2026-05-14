@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+	  <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BookingService.Application\BookingService.Application.csproj" />
+    <ProjectReference Include="..\BookingService.Domain\BookingService.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

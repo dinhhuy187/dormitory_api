@@ -23,7 +23,8 @@ namespace RoomService.API.Features.Rooms
             RoomStatus RoomStatus,
             Guid RoomTypeId,
             string RoomTypeName, // Lấy từ bảng RoomType
-            decimal BasePrice);
+            decimal BasePrice,
+            List<string> Amenities);
 
         public class Endpoint : IEndpoint
         {
@@ -70,7 +71,8 @@ namespace RoomService.API.Features.Rooms
                         r.RoomStatus,
                         r.RoomTypeId,
                         r.RoomType.Name,
-                        r.RoomType.BasePrice
+                        r.RoomType.BasePrice,
+                        r.RoomType.Amenities
                     ))
                     .FirstOrDefaultAsync(cancellationToken);
 

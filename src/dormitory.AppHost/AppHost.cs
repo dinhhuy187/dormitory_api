@@ -11,6 +11,7 @@ builder.AddDockerComposeEnvironment("compose");
 var identityDb = builder.AddConnectionString("identitydb");
 var profileDb = builder.AddConnectionString("profiledb");
 var roomDb = builder.AddConnectionString("roomdb");
+var bookingDb = builder.AddConnectionString("bookingdb");
 var communityDb = builder.AddConnectionString("communitydb");
 
 var incidentDb = builder.AddConnectionString("incidentdb");
@@ -28,6 +29,11 @@ var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
 var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
     .WithReference(roomDb);
 
+var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
+    .WithReference(bookingDb)
+    .WithReference(roomApi) 
+    .WaitFor(roomApi);
+
 var communityApi = builder.AddProject<Projects.Community_API>("community-api")
     .WithReference(communityDb);
 
@@ -38,8 +44,9 @@ var incidentApi = builder.AddProject<Projects.Incident_API>("incident-api")
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(identityApi)
     .WithReference(roomApi)
+    .WithReference(profileApi)
+    .WithReference(bookingApi)
     .WithReference(incidentApi)
     .WithExternalHttpEndpoints();
-
 
 builder.Build().Run();
