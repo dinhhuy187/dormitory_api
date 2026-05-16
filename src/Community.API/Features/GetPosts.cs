@@ -22,11 +22,13 @@ public static class GetPosts
         string PostType,
         bool IsPinned,
         bool IsHidden,
+        int LikeCount,
+        int CommentCount,
         DateTime CreatedAt
     );
 
     public record Response(
-        List<PostDto> Pinned,   // bài ghim luôn trả về đầu
+        List<PostDto> Pinned,
         List<PostDto> Items,
         string? NextCursor,
         bool HasMore
@@ -64,7 +66,6 @@ public static class GetPosts
                     $"PostType không hợp lệ. Giá trị hợp lệ: {string.Join(", ", Enum.GetNames<PostType>())}",
                     StatusCodes.Status400BadRequest);
 
-            // Pinned posts — luôn lấy, không phân trang, chỉ lấy lần đầu (không có cursor)
             var pinnedPosts = new List<PostDto>();
             if (string.IsNullOrEmpty(request.Cursor))
             {
@@ -74,11 +75,12 @@ public static class GetPosts
                     .OrderByDescending(p => p.CreatedAt)
                     .Select(p => new PostDto(
                         p.Id, p.AuthorId, p.Content, p.MediaUrls,
-                        p.PostType.ToString(), p.IsPinned, p.IsHidden, p.CreatedAt))
+                        p.PostType.ToString(), p.IsPinned, p.IsHidden,
+                        p.LikeCount, p.CommentCount,
+                        p.CreatedAt))
                     .ToListAsync(ct);
             }
 
-            // Feed chính — không lấy pinned
             var query = dbContext.Posts
                 .AsNoTracking()
                 .Where(p => !p.IsHidden && !p.IsPinned)
@@ -101,7 +103,9 @@ public static class GetPosts
                 .Take(request.PageSize + 1)
                 .Select(p => new PostDto(
                     p.Id, p.AuthorId, p.Content, p.MediaUrls,
-                    p.PostType.ToString(), p.IsPinned, p.IsHidden, p.CreatedAt))
+                    p.PostType.ToString(), p.IsPinned, p.IsHidden,
+                    p.LikeCount, p.CommentCount,
+                    p.CreatedAt))
                 .ToListAsync(ct);
 
             var hasMore = items.Count > request.PageSize;
