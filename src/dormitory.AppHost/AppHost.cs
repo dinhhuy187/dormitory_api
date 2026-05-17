@@ -13,6 +13,7 @@ var profileDb = builder.AddConnectionString("profiledb");
 var roomDb = builder.AddConnectionString("roomdb");
 var bookingDb = builder.AddConnectionString("bookingdb");
 var communityDb = builder.AddConnectionString("communitydb");
+var chatDb = builder.AddConnectionString("chatdb");
 
 var incidentDb = builder.AddConnectionString("incidentdb");
 
@@ -33,7 +34,7 @@ var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
 var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
     .WithReference(bookingDb)
     .WithReference(roomApi)
-    .WithReference(rabbitMq) 
+    .WithReference(rabbitMq)
     .WaitFor(roomApi);
 
 var communityApi = builder.AddProject<Projects.Community_API>("community-api")
@@ -42,6 +43,9 @@ var communityApi = builder.AddProject<Projects.Community_API>("community-api")
 var incidentApi = builder.AddProject<Projects.Incident_API>("incident-api")
     .WithReference(incidentDb)
     .WithReference(rabbitMq);
+
+var chatApi = builder.AddProject<Projects.Chat_API>("chat-api")
+    .WithReference(chatDb);
 
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(identityApi)
