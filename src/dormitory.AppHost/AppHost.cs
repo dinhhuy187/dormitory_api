@@ -45,7 +45,8 @@ var incidentApi = builder.AddProject<Projects.Incident_API>("incident-api")
     .WithReference(rabbitMq);
 
 var chatApi = builder.AddProject<Projects.Chat_API>("chat-api")
-    .WithReference(chatDb);
+    .WithReference(chatDb)
+    .WithReference(profileApi);
 
 var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(identityApi)

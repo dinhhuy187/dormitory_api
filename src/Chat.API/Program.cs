@@ -1,34 +1,54 @@
-var builder = WebApplication.CreateBuilder(args);
+using Chat.API.Infrastructure.Database;
+using Chat.API.Infrastructure.Services;
+using DotNetEnv;
+using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using Shared;
+using Shared.Endpoints;
+using Shared.Extensions;
 
-// Add services to the container.
+Env.Load();
+
+var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
+builder.Services.AddProblemDetails();
+
+builder.AddNpgsqlDbContext<ChatDbContext>("chatdb");
+
+builder.Services.AddCustomJwtAuthentication(builder.Configuration);
+builder.Services.AddAuthorization();
+
+builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
+
+// Aspire Service Discovery tự resolve "profile-api" → đúng URL
+builder.Services.AddHttpClient<IProfileService, ProfileService>(client =>
+{
+    client.BaseAddress = new Uri("https+http://profile-api");
+})
+.AddServiceDiscovery();
+
+builder.Services.AddHandlersFromAssemblyContaining<Program>();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddEndpoints(typeof(Program).Assembly);
+builder.Services.AddOpenApi();
+
+// SignalR — chuẩn bị sẵn, sẽ dùng ở bước sau
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+app.MapDefaultEndpoints();
+app.MapOpenApi("api/chat/openapi/v1.json");
 
-app.UseHttpsRedirection();
-
-var summaries = new[]
+if (app.Environment.IsDevelopment())
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-});
-
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ChatDbContext>();
+    db.Database.Migrate();
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapEndpoints();
+app.Run();
