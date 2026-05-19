@@ -16,6 +16,7 @@ builder.Services.AddProblemDetails();
 builder.AddNpgsqlDbContext<IncidentDbContext>("incidentdb");
 
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
+builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
 
 builder.Services.AddAuthorization();
 
