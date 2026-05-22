@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 
-namespace Chat.API.Infrastructure.Services;
+namespace Shared.Services;
 
 public class ProfileService(HttpClient httpClient) : IProfileService
 {

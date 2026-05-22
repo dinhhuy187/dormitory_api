@@ -1,9 +1,11 @@
-namespace Chat.API.Infrastructure.Services;
+namespace Shared.Services;
 
 public interface IProfileService
 {
     Task<Dictionary<string, UserProfileDto>> GetProfilesAsync(
-        IEnumerable<string> userIds, string accessToken, CancellationToken ct);
+        IEnumerable<string> userIds,
+        string accessToken,
+        CancellationToken ct);
 }
 
 public record UserProfileDto(

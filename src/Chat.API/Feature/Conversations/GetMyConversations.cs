@@ -1,5 +1,5 @@
 using Chat.API.Infrastructure.Database;
-using Chat.API.Infrastructure.Services;
+using Shared.Services;
 using Chat.API.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared;
@@ -52,7 +52,7 @@ public static class GetMyConversations
     {
         public async Task<List<ConversationDto>> ExecuteAsync(
             string userId,
-            string accessToken,    // thêm tham số
+            string accessToken,
             CancellationToken ct)
         {
             var conversations = await dbContext.Conversations

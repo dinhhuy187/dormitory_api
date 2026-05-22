@@ -1,5 +1,5 @@
 using Chat.API.Infrastructure.Database;
-using Chat.API.Infrastructure.Services;
+using Shared.Services;
 using DotNetEnv;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
