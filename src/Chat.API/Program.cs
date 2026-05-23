@@ -1,4 +1,5 @@
 using Chat.API.Infrastructure.Database;
+using Chat.API.Hubs;
 using Shared.Services;
 using DotNetEnv;
 using FluentValidation;
@@ -12,6 +13,19 @@ Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .WithOrigins("null", "http://localhost:5500", "http://127.0.0.1:5500")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // bắt buộc cho SignalR
+    });
+});
+
 
 builder.AddNpgsqlDbContext<ChatDbContext>("chatdb");
 
@@ -48,7 +62,9 @@ if (app.Environment.IsDevelopment())
     db.Database.Migrate();
 }
 
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapEndpoints();
+app.MapHub<ChatHub>("/hubs/chat");
 app.Run();

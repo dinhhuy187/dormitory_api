@@ -1,10 +1,13 @@
 using Chat.API.Domain.Entities;
+using Chat.API.Hubs;
 using Chat.API.Infrastructure.Database;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
+using Shared.Services;
 using System.Security.Claims;
 
 namespace Chat.API.Features.Messages;
@@ -45,7 +48,13 @@ public static class SendMessage
                 if (files != null && files.Count > 10)
                     return Results.BadRequest(new ApiResponse<string>("Tối đa 10 file đính kèm."));
 
-                var result = await handler.ExecuteAsync(conversationId, userId, content, files, ct);
+                var accessToken = httpContext.Request.Headers.Authorization
+                    .ToString()
+                    .Replace("Bearer ", string.Empty);
+
+                var result = await handler.ExecuteAsync(
+                    conversationId, userId, content, files, accessToken, ct);
+
                 return Results.Created(
                     $"/api/conversations/{conversationId}/messages/{result.Id}",
                     new ApiResponse<Response>(result));
@@ -58,13 +67,18 @@ public static class SendMessage
         }
     }
 
-    public class Handler(ChatDbContext dbContext, IMediaService mediaService)
+    public class Handler(
+        ChatDbContext dbContext,
+        IMediaService mediaService,
+        IProfileService profileService,
+        IHubContext<ChatHub> hubContext)
     {
         public async Task<Response> ExecuteAsync(
             Guid conversationId,
             string userId,
             string content,
             IFormFileCollection? files,
+            string accessToken,
             CancellationToken ct)
         {
             var isMember = await dbContext.ConversationMembers
@@ -75,7 +89,6 @@ public static class SendMessage
             if (!isMember)
                 throw new ApiException("Bạn không thuộc cuộc trò chuyện này.", StatusCodes.Status403Forbidden);
 
-            // Upload files lên Cloudinary trước
             var mediaUrls = await UploadMediaAsync(files, mediaService);
 
             var message = new Message
@@ -95,6 +108,24 @@ public static class SendMessage
             dbContext.Messages.Add(message);
             await dbContext.SaveChangesAsync(ct);
 
+            // Lấy thông tin người gửi để broadcast
+            var profiles = await profileService.GetProfilesAsync([userId], accessToken, ct);
+            profiles.TryGetValue(userId, out var senderProfile);
+
+            // Broadcast đến tất cả thành viên trong conversation đang online
+            await hubContext.Clients
+                .Group(ChatHub.ConversationGroup(conversationId))
+                .SendAsync("ReceiveMessage", new MessagePayload(
+                    message.Id,
+                    message.ConversationId,
+                    message.SenderId,
+                    senderProfile?.FullName ?? "Người dùng",
+                    senderProfile?.AvatarUrl,
+                    message.Content,
+                    message.MediaUrls,
+                    message.CreatedAt
+                ), ct);
+
             return new Response(
                 message.Id,
                 message.ConversationId,
@@ -111,9 +142,7 @@ public static class SendMessage
         IMediaService mediaService)
     {
         var mediaUrls = new List<string>();
-
-        if (files is null || files.Count == 0)
-            return mediaUrls;
+        if (files is null || files.Count == 0) return mediaUrls;
 
         var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".mp4", ".pdf", ".doc", ".docx" };
 

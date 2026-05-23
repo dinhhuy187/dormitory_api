@@ -1,4 +1,6 @@
+using Chat.API.Hubs;
 using Chat.API.Infrastructure.Database;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
@@ -39,7 +41,7 @@ public static class DeleteMessage
         }
     }
 
-    public class Handler(ChatDbContext dbContext)
+    public class Handler(ChatDbContext dbContext, IHubContext<ChatHub> hubContext)
     {
         public async Task<Response> ExecuteAsync(
             Guid conversationId, Guid messageId,
@@ -59,10 +61,16 @@ public static class DeleteMessage
             if (message.SenderId != userId && !isAdminOrStaff)
                 throw new ApiException("Bạn không có quyền xóa tin nhắn này.", StatusCodes.Status403Forbidden);
 
-            // Soft delete — giữ lại record để không phá thread
             message.IsDeleted = true;
-
             await dbContext.SaveChangesAsync(ct);
+
+            // Broadcast xóa tin nhắn
+            await hubContext.Clients
+                .Group(ChatHub.ConversationGroup(conversationId))
+                .SendAsync("MessageDeleted", new MessageDeletedPayload(
+                    message.Id,
+                    conversationId
+                ), ct);
 
             return new Response(message.Id, message.IsDeleted);
         }
