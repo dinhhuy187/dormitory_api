@@ -57,7 +57,7 @@ public static class CreateDirectConversation
             .WithTags("Conversations")
             .WithName("CreateDirectConversation")
             .RequireAuthorization()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status201Created)
+            .Produces<Response>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
         }
     }

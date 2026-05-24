@@ -61,7 +61,7 @@ public static class CreateGroupConversation
             .WithTags("Conversations")
             .WithName("CreateGroupConversation")
             .RequireAuthorization()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status201Created)
+            .Produces<Response>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
         }
     }

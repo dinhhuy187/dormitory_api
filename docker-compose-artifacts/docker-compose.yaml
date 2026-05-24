@@ -99,6 +99,9 @@ services:
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "${COMMUNITY_API_PORT}"
       ConnectionStrings__communitydb: "${COMMUNITYDB}"
+      PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
+      services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "community-api"
@@ -126,6 +129,23 @@ services:
       - "${INCIDENT_API_PORT}"
     networks:
       - "aspire"
+  chat-api:
+    image: "${CHAT_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${CHAT_API_PORT}"
+      ConnectionStrings__chatdb: "${CHATDB}"
+      PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
+      services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "chat-api"
+    expose:
+      - "${CHAT_API_PORT}"
+    networks:
+      - "aspire"
   gateway-api:
     image: "${GATEWAY_API_IMAGE}"
     environment:
@@ -150,6 +170,9 @@ services:
       INCIDENT_API_HTTP: "http://incident-api:${INCIDENT_API_PORT}"
       services__incident-api__http__0: "http://incident-api:${INCIDENT_API_PORT}"
       INCIDENT_API_HTTPS: "https://incident-api:${INCIDENT_API_PORT}"
+      CHAT_API_HTTP: "http://chat-api:${CHAT_API_PORT}"
+      services__chat-api__http__0: "http://chat-api:${CHAT_API_PORT}"
+      CHAT_API_HTTPS: "https://chat-api:${CHAT_API_PORT}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "gateway-api"

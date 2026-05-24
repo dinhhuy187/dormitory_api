@@ -32,6 +32,7 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("api/bookings/openapi/v1.json", "Booking Service API");
     options.SwaggerEndpoint("api/community/openapi/v1.json", "Community Service API");
     options.SwaggerEndpoint("api/incidents/openapi/v1.json", "Incident Service API");
+    options.SwaggerEndpoint("api/conversations/openapi/v1.json", "Chat Service API");
 
     options.RoutePrefix = string.Empty;
 });

@@ -53,7 +53,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
-app.MapOpenApi("api/chat/openapi/v1.json");
+app.MapOpenApi("api/conversations/openapi/v1.json");
 
 if (app.Environment.IsDevelopment())
 {
