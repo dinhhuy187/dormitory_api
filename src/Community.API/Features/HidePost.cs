@@ -47,12 +47,19 @@ public static class HidePost
             if (post is null)
                 throw new ApiException("Bài viết không tồn tại.", StatusCodes.Status404NotFound);
 
-            // Chỉ tác giả hoặc Admin/Staff mới được ẩn bài
+            // Chỉ tác giả hoặc Admin/Staff mới được ẩn/hiện bài
             if (post.AuthorId != userId && !isAdminOrStaff)
                 throw new ApiException("Bạn không có quyền thực hiện hành động này.", StatusCodes.Status403Forbidden);
 
-            post.IsHidden = true;
-            post.IsPinned = false;
+            // Toggle trạng thái ẩn
+            post.IsHidden = !post.IsHidden;
+
+            // Nếu đang ẩn thì bỏ ghim
+            if (post.IsHidden)
+            {
+                post.IsPinned = false;
+            }
+
             post.UpdatedAt = DateTime.UtcNow;
 
             await dbContext.SaveChangesAsync(ct);
