@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Endpoints;
 using Shared.Extensions;
 using Shared;
+using Shared.Services;
 
 Env.Load();
 
@@ -16,6 +17,12 @@ builder.AddNpgsqlDbContext<CommunityDbContext>("communitydb");
 builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
+
+builder.Services.AddHttpClient<IProfileService, ProfileService>(client =>
+{
+    client.BaseAddress = new Uri("https+http://profile-api");
+})
+.AddServiceDiscovery();
 
 builder.Services.AddHandlersFromAssemblyContaining<Program>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();

@@ -23,6 +23,7 @@
     <ProjectReference Include="..\Community.API\Community.API.csproj" />
     <ProjectReference Include="..\Incident.API\Incident.API.csproj" />
     <ProjectReference Include="..\Billing.API\Billing.API.csproj" />
+    <ProjectReference Include="..\Chat.API\Chat.API.csproj" />
   </ItemGroup>
 
 </Project>

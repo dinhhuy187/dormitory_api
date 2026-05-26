@@ -11,6 +11,8 @@ public class Post
     public PostType PostType { get; set; } = PostType.General;
     public bool IsHidden { get; set; } = false;
     public bool IsPinned { get; set; } = false;
+    public int LikeCount { get; set; } = 0;
+    public int CommentCount { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

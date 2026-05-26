@@ -17,6 +17,7 @@ public static class UpdateProfile
         string? Gender,
         string? DateOfBirth,
         string? Bio,
+        string? StudentCode,
         string? StudentYear,
         string? School,
         string? Faculty,
@@ -59,6 +60,7 @@ public static class UpdateProfile
                 .Must(d =>
                 {
                     if (string.IsNullOrWhiteSpace(d)) return true;
+
                     return DateOnly.TryParse(d, out var date)
                            && date <= DateOnly.FromDateTime(DateTime.UtcNow);
                 })
@@ -70,21 +72,31 @@ public static class UpdateProfile
                 .WithMessage("Tiểu sử không được vượt quá 500 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.Bio));
 
+            // ===== StudentCode =====
+            RuleFor(x => x.StudentCode)
+                .MaximumLength(50)
+                .WithMessage("Mã sinh viên không được vượt quá 50 ký tự.")
+                .When(x => !string.IsNullOrWhiteSpace(x.StudentCode));
+
             // ===== StudentYear =====
             RuleFor(x => x.StudentYear)
                 .Must(y =>
                 {
                     if (string.IsNullOrWhiteSpace(y)) return true;
-                    return int.TryParse(y, out var year) && year >= 1 && year <= 10;
+
+                    return int.TryParse(y, out var year)
+                           && year >= 1
+                           && year <= 10;
                 })
                 .WithMessage("Năm học không hợp lệ (1-10).");
 
-            // ===== School / Faculty =====
+            // ===== School =====
             RuleFor(x => x.School)
                 .MaximumLength(150)
                 .WithMessage("Tên trường không được vượt quá 150 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.School));
 
+            // ===== Faculty =====
             RuleFor(x => x.Faculty)
                 .MaximumLength(150)
                 .WithMessage("Tên khoa không được vượt quá 150 ký tự.")
@@ -96,54 +108,61 @@ public static class UpdateProfile
                 .WithMessage("CMND/CCCD phải là 9-12 chữ số.")
                 .When(x => !string.IsNullOrWhiteSpace(x.CitizenId));
 
+            // ===== CitizenIdIssuedPlace =====
             RuleFor(x => x.CitizenIdIssuedPlace)
                 .MaximumLength(150)
                 .WithMessage("Nơi cấp không được vượt quá 150 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.CitizenIdIssuedPlace));
 
-            // ===== Ethnicity / Religion =====
+            // ===== Ethnicity =====
             RuleFor(x => x.Ethnicity)
                 .MaximumLength(100)
                 .WithMessage("Dân tộc không được vượt quá 100 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.Ethnicity));
 
+            // ===== Religion =====
             RuleFor(x => x.Religion)
                 .MaximumLength(100)
                 .WithMessage("Tôn giáo không được vượt quá 100 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.Religion));
 
-            // ===== Address =====
+            // ===== Province =====
             RuleFor(x => x.Province)
                 .MaximumLength(100)
                 .WithMessage("Tỉnh/Thành phố không được vượt quá 100 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.Province));
 
+            // ===== District =====
             RuleFor(x => x.District)
                 .MaximumLength(100)
                 .WithMessage("Quận/Huyện không được vượt quá 100 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.District));
 
+            // ===== Ward =====
             RuleFor(x => x.Ward)
                 .MaximumLength(100)
                 .WithMessage("Phường/Xã không được vượt quá 100 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.Ward));
 
+            // ===== AddressLine =====
             RuleFor(x => x.AddressLine)
                 .MaximumLength(255)
                 .WithMessage("Địa chỉ chi tiết không được vượt quá 255 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.AddressLine));
 
-            // ===== Emergency Contact =====
+            // ===== EmergencyContactName =====
             RuleFor(x => x.EmergencyContactName)
                 .MaximumLength(100)
                 .WithMessage("Tên người liên hệ khẩn cấp không được vượt quá 100 ký tự.")
                 .When(x => !string.IsNullOrWhiteSpace(x.EmergencyContactName));
 
+            // ===== EmergencyContactPhoneNumber =====
             RuleFor(x => x.EmergencyContactPhoneNumber)
                 .Matches(@"^(0|\+84)[0-9]{9}$")
                 .WithMessage("SĐT người liên hệ khẩn cấp không hợp lệ.")
                 .When(x => !string.IsNullOrWhiteSpace(x.EmergencyContactPhoneNumber));
 
+            // ===== EmergencyContactAddress =====
             RuleFor(x => x.EmergencyContactAddress)
                 .MaximumLength(255)
                 .WithMessage("Địa chỉ người liên hệ khẩn cấp không được vượt quá 255 ký tự.")
@@ -151,7 +170,6 @@ public static class UpdateProfile
 
             // ===== Cross-field rules =====
 
-            // Có tên người liên hệ → phải có SĐT
             RuleFor(x => x)
                 .Must(x =>
                     string.IsNullOrWhiteSpace(x.EmergencyContactName) ||
@@ -159,7 +177,6 @@ public static class UpdateProfile
                 .WithMessage("Phải cung cấp SĐT khi có người liên hệ khẩn cấp.")
                 .OverridePropertyName("EmergencyContactPhoneNumber");
 
-            // Có CCCD → phải có nơi cấp
             RuleFor(x => x)
                 .Must(x =>
                     string.IsNullOrWhiteSpace(x.CitizenId) ||
@@ -184,6 +201,7 @@ public static class UpdateProfile
                              ?? throw new UnauthorizedAccessException();
 
                 var result = await handler.ExecuteAsync(userId, command, ct);
+
                 return Results.Ok(new ApiResponse<GetMyProfile.Response>(result));
             })
             .WithTags("Profile")
@@ -197,37 +215,56 @@ public static class UpdateProfile
     public class Handler(ProfileDbContext dbContext)
     {
         public async Task<GetMyProfile.Response> ExecuteAsync(
-            string userId, Command request, CancellationToken ct)
+            string userId,
+            Command request,
+            CancellationToken ct)
         {
             var profile = await dbContext.UserProfiles
                 .FirstOrDefaultAsync(p => p.UserId == userId, ct);
 
             if (profile == null)
             {
-                profile = new UserProfile { UserId = userId };
+                profile = new UserProfile
+                {
+                    UserId = userId
+                };
+
                 dbContext.UserProfiles.Add(profile);
             }
 
-            profile.FullName = request.FullName;
+            profile.FullName = request.FullName ?? profile.FullName;
             profile.PhoneNumber = request.PhoneNumber;
             profile.Gender = request.Gender;
-            profile.DateOfBirth = request.DateOfBirth != null
-                ? DateOnly.Parse(request.DateOfBirth) : null;
+
+            profile.DateOfBirth = !string.IsNullOrWhiteSpace(request.DateOfBirth)
+                ? DateOnly.Parse(request.DateOfBirth)
+                : null;
+
             profile.Bio = request.Bio;
+
+            // Student
+            profile.StudentCode = request.StudentCode;
             profile.StudentYear = request.StudentYear;
             profile.School = request.School;
             profile.Faculty = request.Faculty;
+
+            // Citizen
             profile.CitizenId = request.CitizenId;
             profile.CitizenIdIssuedPlace = request.CitizenIdIssuedPlace;
             profile.Ethnicity = request.Ethnicity;
             profile.Religion = request.Religion;
+
+            // Address
             profile.Province = request.Province;
             profile.District = request.District;
             profile.Ward = request.Ward;
             profile.AddressLine = request.AddressLine;
+
+            // Emergency Contact
             profile.EmergencyContactName = request.EmergencyContactName;
             profile.EmergencyContactPhoneNumber = request.EmergencyContactPhoneNumber;
             profile.EmergencyContactAddress = request.EmergencyContactAddress;
+
             profile.UpdatedAt = DateTime.UtcNow;
 
             await dbContext.SaveChangesAsync(ct);
