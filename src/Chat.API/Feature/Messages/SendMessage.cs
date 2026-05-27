@@ -63,7 +63,7 @@ public static class SendMessage
             .WithName("SendMessage")
             .RequireAuthorization()
             .DisableAntiforgery()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status201Created);
+            .Produces<Response>(StatusCodes.Status201Created);
         }
     }
 

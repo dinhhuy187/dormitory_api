@@ -45,7 +45,7 @@ public static class GetMyConversations
             .WithTags("Conversations")
             .WithName("GetMyConversations")
             .RequireAuthorization()
-            .Produces<ApiResponse<List<ConversationDto>>>(StatusCodes.Status200OK);
+            .Produces<List<ConversationDto>>(StatusCodes.Status200OK);
         }
     }
     public class Handler(ChatDbContext dbContext, IProfileService profileService)

@@ -48,7 +48,7 @@ public static class GetMessages
             .WithTags("Messages")
             .WithName("GetMessages")
             .RequireAuthorization()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status200OK);
+            .Produces<Response>(StatusCodes.Status200OK);
         }
     }
 

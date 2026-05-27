@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.2.1">
+<Project Sdk="Aspire.AppHost.Sdk/13.3.5">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -22,6 +22,7 @@
     <ProjectReference Include="..\RoomService.API\RoomService.API.csproj" />
     <ProjectReference Include="..\Community.API\Community.API.csproj" />
     <ProjectReference Include="..\Incident.API\Incident.API.csproj" />
+    <ProjectReference Include="..\Billing.API\Billing.API.csproj" />
     <ProjectReference Include="..\Chat.API\Chat.API.csproj" />
   </ItemGroup>
 

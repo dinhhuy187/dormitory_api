@@ -37,7 +37,7 @@ public static class DeleteMessage
             .WithTags("Messages")
             .WithName("DeleteMessage")
             .RequireAuthorization()
-            .Produces<ApiResponse<Response>>(StatusCodes.Status200OK);
+            .Produces<Response>(StatusCodes.Status200OK);
         }
     }
 

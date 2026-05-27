@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using Shared.Extensions;
+using Shared.Grpc.Profile;
 
 Env.Load();
 
@@ -46,6 +47,12 @@ builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IJwtProvider, JwtProvider>();
+
+var profileGrpcAddress = builder.Configuration["Services:profile-api:grpc:0"] ?? "http://profile-api:8081";
+builder.Services.AddGrpcClient<ProfileReader.ProfileReaderClient>(options =>
+{
+    options.Address = new Uri(profileGrpcAddress);
+});
 
 builder.Services.AddOpenApi(options =>
 {
