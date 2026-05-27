@@ -10,6 +10,10 @@
 	<PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="DotNetEnv" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+    <PackageReference Include="Google.Protobuf" />
+
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
@@ -17,6 +21,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="..\Shared\Protos\profile.proto" GrpcServices="Client" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\dormitory.ServiceDefaults\dormitory.ServiceDefaults.csproj" />

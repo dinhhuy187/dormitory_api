@@ -1,5 +1,3 @@
-using Aspire.Hosting.Docker.Resources.ServiceNodes;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddDockerComposeEnvironment("compose");
@@ -23,11 +21,16 @@ var rabbitMq = builder.AddRabbitMQ("rabbitmq")
     .WithManagementPlugin()
     .WithDataVolume();
 
-var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
-    .WithReference(identityDb);
-
 var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
-    .WithReference(profileDb);
+    .WithReference(profileDb)
+    .WithEnvironment("PROFILE_GRPC_PORT", "8081")
+    .WithEndpoint(name: "grpc", targetPort: 8081, scheme: "http")
+    .WithEndpointsInEnvironment(endpoint => endpoint.Name != "grpc");
+
+var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
+    .WithReference(identityDb)
+    .WithReference(profileApi)
+    .WaitFor(profileApi);
 
 var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
     .WithReference(roomDb);

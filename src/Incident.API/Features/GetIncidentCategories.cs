@@ -16,7 +16,7 @@ public static class GetIncidentCategories
     {
         public void MapEndpoint(IEndpointRouteBuilder app)
         {
-            app.MapGet("api/incident-categories", async (
+            app.MapGet("api/incidents/categories", async (
                 Handler handler,
                 CancellationToken ct) =>
             {

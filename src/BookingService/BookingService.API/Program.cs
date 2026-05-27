@@ -44,20 +44,17 @@ app.MapDefaultEndpoints();
 
 app.MapOpenApi("api/bookings/openapi/v1.json");
 
-if (app.Environment.IsDevelopment())
+using var scope = app.Services.CreateScope();
+var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+dbContext.Database.Migrate();
+try
 {
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
-    dbContext.Database.Migrate();
-    try
-    {
-        await SeedData.SeedAsync(scope.ServiceProvider);
-    }
-    catch (Exception ex)
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
-    }
+    await SeedData.SeedAsync(scope.ServiceProvider);
+}
+catch (Exception ex)
+{
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
 }
 
 app.UseAuthorization();

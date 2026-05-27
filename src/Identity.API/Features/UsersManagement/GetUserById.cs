@@ -1,8 +1,10 @@
 using Shared.Endpoints;
 using FluentValidation;
+using Grpc.Core;
 using Identity.API.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Shared;
+using Shared.Grpc.Profile;
 
 namespace Identity.API.Features.UsersManagement
 {
@@ -43,7 +45,10 @@ namespace Identity.API.Features.UsersManagement
                 .Produces<Response>(StatusCodes.Status200OK);
             }
         }
-        public class Handler(ApplicationDbContext dbContext)
+        public class Handler(
+            ApplicationDbContext dbContext,
+            ProfileReader.ProfileReaderClient profileClient,
+            ILogger<Handler> logger)
         {
             public async Task<ApiResponse<Response>> ExecuteAsync(Query request, CancellationToken cancellationToken)
             {
@@ -75,13 +80,35 @@ namespace Identity.API.Features.UsersManagement
                           (ur, r) => r.Name)
                     .FirstOrDefaultAsync(cancellationToken);
 
+                var avatarUrl = string.Empty;
+                using var profileTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                profileTimeout.CancelAfter(TimeSpan.FromSeconds(2));
+
+                try
+                {
+                    var profile = await profileClient.GetAvatarByUserIdAsync(
+                        new GetAvatarByUserIdRequest { UserId = user.Id },
+                        deadline: DateTime.UtcNow.AddSeconds(2),
+                        cancellationToken: profileTimeout.Token);
+
+                    avatarUrl = profile.AvatarUrl ?? string.Empty;
+                }
+                catch (RpcException ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    logger.LogWarning(ex, "Could not load avatar for user {UserId}", user.Id);
+                }
+                catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    logger.LogWarning(ex, "Could not load avatar for user {UserId}", user.Id);
+                }
+
                 var response = new Response(
                     user.Id,
                     user.Email!,
                     user.FullName,
                     user.IsActive,
                     roleName ?? string.Empty,
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/DoMixi1989.jpg/960px-DoMixi1989.jpg",
+                    avatarUrl,
                     user.CreatedAt,
                     DateTime.UtcNow - TimeSpan.FromHours(2) // Placeholder cho LastActiveAt vì chưa có tracking thực tế
                 );
