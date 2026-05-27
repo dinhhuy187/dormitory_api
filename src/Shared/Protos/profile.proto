@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Grpc.Profile";
+
+package dormitory.profile.v1;
+
+service ProfileReader {
+  rpc GetAvatarByUserId (GetAvatarByUserIdRequest) returns (GetAvatarByUserIdResponse);
+}
+
+message GetAvatarByUserIdRequest {
+  string user_id = 1;
+}
+
+message GetAvatarByUserIdResponse {
+  string user_id = 1;
+  string avatar_url = 2;
+  bool profile_exists = 3;
+}
