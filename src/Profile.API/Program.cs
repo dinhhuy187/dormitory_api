@@ -14,6 +14,7 @@ Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var grpcPort = builder.Configuration.GetValue<int?>("PROFILE_GRPC_PORT");
 if (grpcPort is not null)
@@ -30,7 +31,10 @@ if (grpcPort is not null)
 
         options.ListenAnyIP(grpcPort.Value, listenOptions =>
         {
-            listenOptions.Protocols = HttpProtocols.Http2;
+            options.ListenAnyIP(grpcPort.Value, listenOptions =>
+            {
+                listenOptions.Protocols = HttpProtocols.Http2;
+            });
         });
     });
 }
@@ -52,8 +56,6 @@ builder.Services.AddOpenApi(options =>
 // Add services to the container.
 builder.Services.AddEndpoints(typeof(Program).Assembly);
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
