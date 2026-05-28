@@ -1,11 +1,13 @@
 using System.Reflection;
 using Billing.API.Infrastructure.Database;
+using Billing.API.Infrastructure.Services;
 using DotNetEnv;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
 using Shared.Extensions;
+using Shared.Grpc.Rooms;
 
 Env.Load();
 
@@ -17,6 +19,13 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.AddNpgsqlDbContext<BillingDbContext>("billingdb");
+
+var roomGrpcAddress = builder.Configuration["Services:room-api:grpc:0"] ?? "http://room-api:8082";
+builder.Services.AddGrpcClient<RoomBillingReader.RoomBillingReaderClient>(options =>
+{
+    options.Address = new Uri(roomGrpcAddress);
+});
+builder.Services.AddScoped<IRoomBillingClient, RoomBillingClient>();
 
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();

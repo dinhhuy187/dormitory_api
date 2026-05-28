@@ -9,6 +9,9 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.AspNetCore" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 	  <PackageReference Include="DotNetEnv" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore" />
@@ -18,6 +21,10 @@
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
 
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="..\Shared\Protos\room_billing.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>
