@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using System.Text.Json;
 using Billing.API.Domain.Entities;
 using Billing.API.Domain.Enums;
+using Billing.API.Infrastructure.Auth;
 using Billing.API.Infrastructure.Database;
 using Billing.API.Infrastructure.Services;
 using FluentValidation;
@@ -87,7 +87,7 @@ public static class CreateInvoice
                     HttpContext httpContext,
                     CancellationToken ct) =>
                 {
-                    if (!TryGetCurrentUserId(httpContext.User, out var currentUserId))
+                    if (!CurrentUser.TryGetUserId(httpContext.User, out var currentUserId))
                     {
                         return Results.Unauthorized();
                     }
@@ -97,22 +97,12 @@ public static class CreateInvoice
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("CreateInvoice")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Creates a monthly invoice for a room. Room existence and capacity are resolved through RoomService gRPC. Old meter indices are derived from the latest room invoice. New invoice status is Unpaid. Status values are Unpaid and Paid. Electricity receives 8% VAT; water prices already include fees and tax.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .AddEndpointFilter<ValidationFilter<Command>>()
-                .Produces<ApiResponse<Response>>(StatusCodes.Status201Created)
+                .Produces<Response>(StatusCodes.Status201Created)
                 .ProducesValidationProblem()
                 .Produces(StatusCodes.Status401Unauthorized);
-        }
-
-        private static bool TryGetCurrentUserId(ClaimsPrincipal user, out Guid userId)
-        {
-            var rawUserId = user.FindFirstValue("student_id")
-                ?? user.FindFirstValue("studentId")
-                ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? user.FindFirstValue("sub")
-                ?? user.FindFirstValue("userId");
-
-            return Guid.TryParse(rawUserId, out userId);
         }
     }
 

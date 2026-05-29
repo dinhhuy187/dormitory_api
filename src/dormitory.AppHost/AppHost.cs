@@ -68,6 +68,7 @@ var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(bookingApi)
     .WithReference(communityApi)
     .WithReference(incidentApi)
+    .WithReference(billingApi)
     .WithReference(chatApi)
     .WithExternalHttpEndpoints();
 
