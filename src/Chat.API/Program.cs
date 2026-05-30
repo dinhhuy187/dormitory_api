@@ -66,5 +66,5 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapEndpoints();
-app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<ChatHub>("/api/conversations/hubs/chat");
 app.Run();
