@@ -23,8 +23,7 @@ var rabbitMq = builder.AddRabbitMQ("rabbitmq")
 
 var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
     .WithReference(profileDb)
-    .WithEnvironment("PROFILE_GRPC_PORT", "8081")
-    .WithEndpoint(name: "grpc", targetPort: 8081, scheme: "http")
+    .WithEndpoint(name: "grpc", scheme: "http")
     .WithEndpointsInEnvironment(endpoint => endpoint.Name != "grpc");
 
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
