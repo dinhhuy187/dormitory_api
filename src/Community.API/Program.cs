@@ -12,6 +12,7 @@ Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.AddNpgsqlDbContext<CommunityDbContext>("communitydb");
 builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();

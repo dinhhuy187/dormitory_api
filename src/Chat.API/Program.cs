@@ -13,6 +13,7 @@ Env.Load();
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddCors(options =>
 {
@@ -25,7 +26,6 @@ builder.Services.AddCors(options =>
             .AllowCredentials(); // bắt buộc cho SignalR
     });
 });
-
 
 builder.AddNpgsqlDbContext<ChatDbContext>("chatdb");
 
@@ -66,5 +66,5 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapEndpoints();
-app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<ChatHub>("/api/conversations/hubs/chat");
 app.Run();

@@ -63,22 +63,35 @@ public static class ReviewPostReport
     {
         public async Task<Response> ExecuteAsync(Guid reportId, Request req, CancellationToken ct)
         {
-            var report = await dbContext.PostReports
+            // 1. Tìm báo cáo cụ thể được chỉ định qua reportId
+            var currentReport = await dbContext.PostReports
                 .FirstOrDefaultAsync(r => r.Id == reportId, ct);
 
-            if (report is null)
+            if (currentReport is null)
                 throw new ApiException("Báo cáo không tồn tại.", StatusCodes.Status404NotFound);
 
-            if (report.Status != ReportStatus.Pending)
+            if (currentReport.Status != ReportStatus.Pending)
                 throw new ApiException("Báo cáo này đã được xử lý rồi.", StatusCodes.Status400BadRequest);
 
-            report.Status = Enum.Parse<ReportStatus>(req.Status, ignoreCase: true);
+            var targetPostId = currentReport.PostId;
+            var targetStatus = Enum.Parse<ReportStatus>(req.Status, ignoreCase: true);
 
-            // Nếu duyệt report → ẩn bài viết luôn
-            if (report.Status == ReportStatus.Reviewed)
+            // 2. Lấy TẤT CẢ các báo cáo đang 'Pending' của cùng bài viết đó để xử lý đồng loạt
+            var relatedReports = await dbContext.PostReports
+                .Where(r => r.PostId == targetPostId && r.Status == ReportStatus.Pending)
+                .ToListAsync(ct);
+
+            // 3. Cập nhật trạng thái cho toàn bộ danh sách báo cáo liên quan tìm được
+            foreach (var report in relatedReports)
+            {
+                report.Status = targetStatus;
+            }
+
+            // 4. Nếu trạng thái duyệt là Reviewed -> Ẩn bài viết luôn
+            if (targetStatus == ReportStatus.Reviewed)
             {
                 var post = await dbContext.Posts
-                    .FirstOrDefaultAsync(p => p.Id == report.PostId, ct);
+                    .FirstOrDefaultAsync(p => p.Id == targetPostId, ct);
 
                 if (post is not null)
                 {
@@ -88,9 +101,15 @@ public static class ReviewPostReport
                 }
             }
 
+            // 5. Lưu toàn bộ thay đổi xuống cơ sở dữ liệu
             await dbContext.SaveChangesAsync(ct);
 
-            return new Response(report.Id, report.PostId, report.Status.ToString());
+            // Trả về đúng định dạng Response cũ (sử dụng currentReport.Id và targetPostId)
+            return new Response(
+                currentReport.Id,
+                targetPostId,
+                targetStatus.ToString()
+            );
         }
     }
 }
