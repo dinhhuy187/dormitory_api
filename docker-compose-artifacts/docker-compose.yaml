@@ -157,6 +157,14 @@ services:
       ROOM_API_HTTPS: "https://room-api:${ROOM_API_PORT}"
       ROOM_API_GRPC: "http://room-api:8082"
       services__room-api__grpc__0: "http://room-api:8082"
+      BOOKING_API_HTTP: "http://booking-api:${BOOKING_API_PORT}"
+      services__booking-api__http__0: "http://booking-api:${BOOKING_API_PORT}"
+      BOOKING_API_HTTPS: "https://booking-api:${BOOKING_API_PORT}"
+      PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
+      services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_GRPC: "http://profile-api:8081"
+      services__profile-api__grpc__0: "http://profile-api:8081"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "billing-api"
@@ -164,6 +172,10 @@ services:
       - "${BILLING_API_PORT}"
     depends_on:
       room-api:
+        condition: "service_started"
+      booking-api:
+        condition: "service_started"
+      profile-api:
         condition: "service_started"
     networks:
       - "aspire"

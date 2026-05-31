@@ -6,6 +6,7 @@ package dormitory.profile.v1;
 
 service ProfileReader {
   rpc GetAvatarByUserId (GetAvatarByUserIdRequest) returns (GetAvatarByUserIdResponse);
+  rpc GetStudentProfilesByUserIds (GetStudentProfilesByUserIdsRequest) returns (GetStudentProfilesByUserIdsResponse);
 }
 
 message GetAvatarByUserIdRequest {
@@ -16,4 +17,27 @@ message GetAvatarByUserIdResponse {
   string user_id = 1;
   string avatar_url = 2;
   bool profile_exists = 3;
+}
+
+message GetStudentProfilesByUserIdsRequest {
+  repeated string user_ids = 1;
+}
+
+message GetStudentProfilesByUserIdsResponse {
+  repeated StudentProfileItem profiles = 1;
+}
+
+message StudentProfileItem {
+  string user_id = 1;
+  string full_name = 2;
+  string student_code = 3;
+  string email = 4;
+  string phone_number = 5;
+  string gender = 6;
+  string date_of_birth = 7;
+  string avatar_url = 8;
+  string student_year = 9;
+  string school = 10;
+  string faculty = 11;
+  bool profile_exists = 12;
 }

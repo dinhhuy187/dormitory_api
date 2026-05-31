@@ -2,6 +2,7 @@ using BookingService.Application.Common.Models;
 using BookingService.Application.UseCases.Bookings.Commands.CancelBooking;
 using BookingService.Application.UseCases.Bookings.Commands.ConfirmBooking;
 using BookingService.Application.UseCases.Bookings.Commands.CreateBooking;
+using BookingService.Application.UseCases.Bookings.Queries.GetRoomStudents;
 using BookingService.Application.UseCases.Bookings.Queries.GetUserBookings;
 using BookingService.Application.UseCases.FeeTemplates.Queries.GetAllFeeTemplates;
 using FluentValidation;
@@ -17,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IConfirmBookingUseCase, ConfirmBookingUseCase>();
         services.AddScoped<ICancelBookingUseCase, CancelBookingUseCase>();
         services.AddScoped<IGetUserBookingsUseCase, GetUserBookingsUseCase>();
+        services.AddScoped<IGetRoomStudentsUseCase, GetRoomStudentsUseCase>();
         services.AddScoped<IGetAllFeeTemplatesUseCase, GetAllFeeTemplatesUseCase>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);

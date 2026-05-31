@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="DotNetEnv" />
+    <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
 	  <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">

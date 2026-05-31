@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using BookingService.Application.Common.Models;
 using BookingService.Application.UseCases.Bookings.Commands.CreateBooking;
+using BookingService.Application.UseCases.Bookings.Queries.GetRoomStudents;
 using BookingService.Application.UseCases.Bookings.Queries.GetUserBookings;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
@@ -49,6 +50,30 @@ public static class BookingEndpoints
         .WithName("GetUserBookings")
         .Produces<List<BookingItemResponse>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status403Forbidden);
+
+        group.MapGet("/rooms/{roomId:guid}/students", async (
+            Guid roomId,
+            [FromServices] IGetRoomStudentsUseCase useCase,
+            CancellationToken ct) =>
+        {
+            var result = await useCase.ExecuteAsync(new GetRoomStudentsQuery(roomId), ct);
+
+            if (!result.IsSuccess)
+            {
+                return Results.BadRequest(new { Error = result.ErrorMessage });
+            }
+
+            return Results.Ok(new ApiResponse<RoomStudentsResponse>(result.Value!));
+        })
+        .WithName("GetRoomStudents")
+        .WithDescription("Required roles: Admin, Manager. Gets students assigned to one room. Booking fields come from BookingService; profile fields come from ProfileService through gRPC. Includes only Confirmed and Active bookings; excludes Pending, Canceled, and Completed. Citizen ID, address, ethnicity, religion, and emergency contact fields are intentionally not returned.")
+        .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager"))
+        .Produces<ApiResponse<RoomStudentsResponse>>(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status403Forbidden)
+        .Produces(StatusCodes.Status502BadGateway)
+        .Produces(StatusCodes.Status503ServiceUnavailable);
 
 
         // API TẠO ĐƠN ĐẶT PHÒNG

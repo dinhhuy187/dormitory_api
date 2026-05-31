@@ -5,6 +5,7 @@ using BookingService.Infrastructure.Data;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Shared.Extensions;
+using Shared.Grpc.Profile;
 
 Env.Load();
 
@@ -23,6 +24,13 @@ builder.AddServiceDefaults();
 
 builder.Services.AddApplicationLayer();
 builder.Services.AddInfrastructureLayer(builder.Configuration);
+
+var profileGrpcAddress = builder.Configuration["Services:profile-api:grpc:0"] ?? "http://profile-api:8081";
+builder.Services.AddGrpcClient<ProfileReader.ProfileReaderClient>(options =>
+{
+    options.Address = new Uri(profileGrpcAddress);
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options =>
 {
@@ -57,6 +65,7 @@ catch (Exception ex)
     logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapBookingSyncEndpoints();

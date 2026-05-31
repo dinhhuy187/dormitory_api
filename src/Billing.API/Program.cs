@@ -8,6 +8,7 @@ using Shared;
 using Shared.Endpoints;
 using Shared.Extensions;
 using Shared.Grpc.Rooms;
+using Shared.Services;
 
 Env.Load();
 
@@ -36,6 +37,14 @@ builder.Services.AddHttpClient("RoomServiceClient", client =>
 builder.Services.AddHttpClient("BookingServiceClient", client =>
 {
     client.BaseAddress = new Uri("http://booking-api");
+})
+.AddStandardResilienceHandler();
+
+builder.Services.AddScoped<IBookingContractClient, BookingContractClient>();
+
+builder.Services.AddHttpClient<IProfileService, ProfileService>(client =>
+{
+    client.BaseAddress = new Uri("http://profile-api");
 })
 .AddStandardResilienceHandler();
 

@@ -41,8 +41,10 @@ var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
 var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
     .WithReference(bookingDb)
     .WithReference(roomApi)
+    .WithReference(profileApi)
     .WithReference(rabbitMq)
-    .WaitFor(roomApi);
+    .WaitFor(roomApi)
+    .WaitFor(profileApi);
 
 var communityApi = builder.AddProject<Projects.Community_API>("community-api")
     .WithReference(communityDb)
@@ -56,8 +58,10 @@ var billingApi = builder.AddProject<Projects.Billing_API>("billing-api")
     .WithReference(billingDb)
     .WithReference(roomApi)
     .WithReference(bookingApi)
+    .WithReference(profileApi)
     .WaitFor(roomApi)
-    .WaitFor(bookingApi);
+    .WaitFor(bookingApi)
+    .WaitFor(profileApi);
 
 var chatApi = builder.AddProject<Projects.Chat_API>("chat-api")
     .WithReference(chatDb)

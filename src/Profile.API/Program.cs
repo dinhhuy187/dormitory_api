@@ -31,10 +31,7 @@ if (grpcPort is not null)
 
         options.ListenAnyIP(grpcPort.Value, listenOptions =>
         {
-            options.ListenAnyIP(grpcPort.Value, listenOptions =>
-            {
-                listenOptions.Protocols = HttpProtocols.Http2;
-            });
+            listenOptions.Protocols = HttpProtocols.Http2;
         });
     });
 }
