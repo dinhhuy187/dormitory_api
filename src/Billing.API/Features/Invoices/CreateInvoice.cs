@@ -99,7 +99,7 @@ public static class CreateInvoice
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("CreateInvoice")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Creates a monthly invoice for a room. Room existence, capacity, building code, and floor are resolved through RoomService gRPC; building code and floor are stored as invoice snapshots. Old meter indices are derived from the latest non-canceled room invoice. New invoice status is Unpaid. Status values are Unpaid, Paid, and Canceled. Electricity receives 8% VAT; water prices already include fees and tax.")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Creates a monthly invoice for a room. Room existence, room type, capacity, building code, and floor are resolved through RoomService gRPC; building code and floor are stored as invoice snapshots. Old meter indices are derived from the latest non-canceled room invoice. A room-type-specific contract template snapshot is linked when available, with generic fallback. New invoice status is Unpaid. Status values are Unpaid, Paid, and Canceled. Electricity receives 8% VAT; water prices already include fees and tax.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .AddEndpointFilter<ValidationFilter<Command>>()
                 .Produces<Response>(StatusCodes.Status201Created)
@@ -177,10 +177,21 @@ public static class CreateInvoice
             var activeContractTemplate = await dbContext.ContractTemplates
                 .AsNoTracking()
                 .Where(template => template.IsActive &&
+                                   template.RoomTypeId == room.RoomTypeId &&
                                    template.EffectiveFrom <= billingDate &&
                                    (template.EffectiveTo == null || template.EffectiveTo >= billingDate))
                 .OrderByDescending(template => template.EffectiveFrom)
-                .FirstOrDefaultAsync(cancellationToken);
+                .ThenByDescending(template => template.Version)
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? await dbContext.ContractTemplates
+                    .AsNoTracking()
+                    .Where(template => template.IsActive &&
+                                       template.RoomTypeId == null &&
+                                       template.EffectiveFrom <= billingDate &&
+                                       (template.EffectiveTo == null || template.EffectiveTo >= billingDate))
+                    .OrderByDescending(template => template.EffectiveFrom)
+                    .ThenByDescending(template => template.Version)
+                    .FirstOrDefaultAsync(cancellationToken);
 
             var invoice = new Invoice
             {

@@ -8,61 +8,76 @@ namespace Billing.API.Features.Reports;
 
 public static class GetFinancialSummary
 {
+    private const string TypeMonth = "MONTH";
+    private const string TypeQuarter = "QUARTER";
+    private const string TypeYear = "YEAR";
+
     public sealed record Response(
-        string PeriodType,
-        int Year,
-        int? Month,
-        int? Quarter,
         decimal TotalRevenue,
-        decimal TotalOutstanding,
-        int PaidInvoiceCount,
-        int UnpaidInvoiceCount);
+        decimal TotalDebt,
+        int PaidInvoices,
+        int PendingInvoices,
+        RevenueChartResponse RevenueChart,
+        IReadOnlyList<DebtChartItemResponse> DebtChart);
+
+    public sealed record RevenueChartResponse(
+        IReadOnlyList<string> Labels,
+        IReadOnlyList<RevenueDatasetResponse> Datasets);
+
+    public sealed record RevenueDatasetResponse(IReadOnlyList<decimal> Data);
+
+    public sealed record DebtChartItemResponse(
+        string Name,
+        decimal Population,
+        string Color,
+        string LegendFontColor,
+        int LegendFontSize);
+
+    public sealed record Query(string Type, int? Month, int Year);
+
+    private sealed record PeriodInfo(
+        string Type,
+        int? Month,
+        int Year,
+        int StartMonth,
+        int EndMonth,
+        DateOnly PeriodStart);
 
     public sealed class Endpoint : IEndpoint
     {
         public void MapEndpoint(IEndpointRouteBuilder app)
         {
             app.MapGet("/api/billing/reports/financial-summary", async (
-                    string periodType,
-                    int year,
+                    string type,
                     int? month,
-                    int? quarter,
+                    int year,
                     Handler handler,
                     CancellationToken ct) =>
                 {
-                    var response = await handler.ExecuteAsync(new Query(periodType, year, month, quarter), ct);
+                    var response = await handler.ExecuteAsync(new Query(type, month, year), ct);
                     return Results.Ok(new ApiResponse<Response>(response));
                 })
                 .WithTags("Billing - Reports")
                 .WithName("GetFinancialSummary")
-                .WithDescription("Required role: Admin. Returns financial KPI summary. periodType accepts month, quarter, or year. For month, provide month 1-12. For quarter, provide quarter 1-4. Status values are Unpaid, Paid, and Canceled. TotalRevenue sums Paid invoices; TotalOutstanding sums Unpaid invoices; Canceled invoices are ignored by money totals.")
+                .WithDescription("Required role: Admin. Returns finance KPIs and chart data. type accepts MONTH, QUARTER, or YEAR. month is required for MONTH as 1-12 and for QUARTER as 1-4; month is ignored for YEAR. Status values are Unpaid, Paid, and Canceled; Canceled invoices are ignored. debtChart is empty for future QUARTER or YEAR periods.")
                 .RequireAuthorization(policy => policy.RequireRole("Admin"))
-                .Produces<Response>(StatusCodes.Status200OK);
+                .Produces<Response>(StatusCodes.Status200OK)
+                .ProducesValidationProblem();
         }
     }
-
-    public sealed record Query(string PeriodType, int Year, int? Month, int? Quarter);
 
     public sealed class Handler(BillingDbContext dbContext)
     {
         public async Task<Response> ExecuteAsync(Query query, CancellationToken cancellationToken)
         {
-            var normalizedPeriodType = query.PeriodType.Trim().ToLowerInvariant();
-            ValidateQuery(normalizedPeriodType, query);
+            var period = ValidateAndBuildPeriod(query);
 
             var invoicesQuery = dbContext.Invoices
                 .AsNoTracking()
-                .Where(invoice => invoice.BillingYear == query.Year);
-
-            invoicesQuery = normalizedPeriodType switch
-            {
-                "month" => invoicesQuery.Where(invoice => invoice.BillingMonth == query.Month!.Value),
-                "quarter" => invoicesQuery.Where(invoice =>
-                    invoice.BillingMonth >= ((query.Quarter!.Value - 1) * 3) + 1 &&
-                    invoice.BillingMonth <= query.Quarter.Value * 3),
-                "year" => invoicesQuery,
-                _ => throw new ApiException("periodType must be month, quarter, or year.", StatusCodes.Status400BadRequest)
-            };
+                .Where(invoice => invoice.Status != InvoiceStatus.Canceled &&
+                                  invoice.BillingYear == period.Year &&
+                                  invoice.BillingMonth >= period.StartMonth &&
+                                  invoice.BillingMonth <= period.EndMonth);
 
             var summary = await invoicesQuery
                 .GroupBy(_ => 1)
@@ -71,51 +86,183 @@ public static class GetFinancialSummary
                     TotalRevenue = group
                         .Where(invoice => invoice.Status == InvoiceStatus.Paid)
                         .Sum(invoice => invoice.TotalAmount),
-                    TotalOutstanding = group
+                    TotalDebt = group
                         .Where(invoice => invoice.Status == InvoiceStatus.Unpaid)
                         .Sum(invoice => invoice.TotalAmount),
-                    PaidInvoiceCount = group.Count(invoice => invoice.Status == InvoiceStatus.Paid),
-                    UnpaidInvoiceCount = group.Count(invoice => invoice.Status == InvoiceStatus.Unpaid)
+                    PaidInvoices = group.Count(invoice => invoice.Status == InvoiceStatus.Paid),
+                    PendingInvoices = group.Count(invoice => invoice.Status == InvoiceStatus.Unpaid)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
+            var totalRevenue = summary?.TotalRevenue ?? 0;
+            var totalDebt = summary?.TotalDebt ?? 0;
+            var paidInvoices = summary?.PaidInvoices ?? 0;
+            var pendingInvoices = summary?.PendingInvoices ?? 0;
+
+            var revenueChart = await BuildRevenueChartAsync(period, cancellationToken);
+            var debtChart = BuildDebtChart(period, totalRevenue, totalDebt);
+
             return new Response(
-                normalizedPeriodType,
-                query.Year,
-                normalizedPeriodType == "month" ? query.Month : null,
-                normalizedPeriodType == "quarter" ? query.Quarter : null,
-                summary?.TotalRevenue ?? 0,
-                summary?.TotalOutstanding ?? 0,
-                summary?.PaidInvoiceCount ?? 0,
-                summary?.UnpaidInvoiceCount ?? 0);
+                totalRevenue,
+                totalDebt,
+                paidInvoices,
+                pendingInvoices,
+                revenueChart,
+                debtChart);
         }
 
-        private static void ValidateQuery(string normalizedPeriodType, Query query)
+        private async Task<RevenueChartResponse> BuildRevenueChartAsync(
+            PeriodInfo period,
+            CancellationToken cancellationToken)
         {
+            return period.Type switch
+            {
+                TypeMonth => await BuildMonthlyRevenueChartAsync(period, cancellationToken),
+                TypeQuarter => await BuildMonthBucketRevenueChartAsync(
+                    period,
+                    Enumerable.Range(period.StartMonth, 3).Select(month => $"T{month}").ToList(),
+                    cancellationToken),
+                TypeYear => await BuildMonthBucketRevenueChartAsync(
+                    period,
+                    Enumerable.Range(1, 12).Select(month => $"T{month}").ToList(),
+                    cancellationToken),
+                _ => throw new ApiException("type must be MONTH, QUARTER, or YEAR.", StatusCodes.Status400BadRequest)
+            };
+        }
+
+        private async Task<RevenueChartResponse> BuildMonthlyRevenueChartAsync(
+            PeriodInfo period,
+            CancellationToken cancellationToken)
+        {
+            var daysInMonth = DateTime.DaysInMonth(period.Year, period.StartMonth);
+            var labels = Enumerable.Range(1, daysInMonth > 28 ? 5 : 4)
+                .Select(week => $"W{week}")
+                .ToList();
+            var data = labels.Select(_ => 0m).ToArray();
+
+            var paidInvoices = await dbContext.Invoices
+                .AsNoTracking()
+                .Where(invoice => invoice.Status == InvoiceStatus.Paid &&
+                                  invoice.BillingYear == period.Year &&
+                                  invoice.BillingMonth == period.StartMonth)
+                .Select(invoice => new
+                {
+                    invoice.CreatedAt,
+                    invoice.TotalAmount
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var invoice in paidInvoices)
+            {
+                var weekIndex = Math.Min((invoice.CreatedAt.Day - 1) / 7, labels.Count - 1);
+                data[weekIndex] += invoice.TotalAmount;
+            }
+
+            return new RevenueChartResponse(labels, [new RevenueDatasetResponse(data)]);
+        }
+
+        private async Task<RevenueChartResponse> BuildMonthBucketRevenueChartAsync(
+            PeriodInfo period,
+            IReadOnlyList<string> labels,
+            CancellationToken cancellationToken)
+        {
+            var revenueByMonth = await dbContext.Invoices
+                .AsNoTracking()
+                .Where(invoice => invoice.Status == InvoiceStatus.Paid &&
+                                  invoice.BillingYear == period.Year &&
+                                  invoice.BillingMonth >= period.StartMonth &&
+                                  invoice.BillingMonth <= period.EndMonth)
+                .GroupBy(invoice => invoice.BillingMonth)
+                .Select(group => new
+                {
+                    Month = group.Key,
+                    TotalRevenue = group.Sum(invoice => invoice.TotalAmount)
+                })
+                .ToListAsync(cancellationToken);
+
+            var revenueLookup = revenueByMonth.ToDictionary(item => item.Month, item => item.TotalRevenue);
+            var data = Enumerable.Range(period.StartMonth, period.EndMonth - period.StartMonth + 1)
+                .Select(month => revenueLookup.GetValueOrDefault((short)month))
+                .ToList();
+
+            return new RevenueChartResponse(labels, [new RevenueDatasetResponse(data)]);
+        }
+
+        private static IReadOnlyList<DebtChartItemResponse> BuildDebtChart(
+            PeriodInfo period,
+            decimal totalRevenue,
+            decimal totalDebt)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (period.Type is TypeQuarter or TypeYear && period.PeriodStart > today)
+            {
+                return [];
+            }
+
+            var total = totalRevenue + totalDebt;
+            var paidPercent = total == 0 ? 0 : Math.Round(totalRevenue / total * 100, 2);
+            var debtPercent = total == 0 ? 0 : Math.Round(totalDebt / total * 100, 2);
+
+            return
+            [
+                new DebtChartItemResponse("Da thu", paidPercent, "#22C55E", "#334155", 12),
+                new DebtChartItemResponse("Con no", debtPercent, "#EF4444", "#334155", 12)
+            ];
+        }
+
+        private static PeriodInfo ValidateAndBuildPeriod(Query query)
+        {
+            if (string.IsNullOrWhiteSpace(query.Type))
+            {
+                throw new ApiException("type must be MONTH, QUARTER, or YEAR.", StatusCodes.Status400BadRequest);
+            }
+
             if (query.Year is < 2020 or > 2100)
             {
                 throw new ApiException("year must be between 2020 and 2100.", StatusCodes.Status400BadRequest);
             }
 
-            switch (normalizedPeriodType)
+            var normalizedType = query.Type.Trim().ToUpperInvariant();
+            return normalizedType switch
             {
-                case "month":
-                    if (query.Month is null or < 1 or > 12)
-                    {
-                        throw new ApiException("month must be between 1 and 12 when periodType is month.", StatusCodes.Status400BadRequest);
-                    }
-                    break;
-                case "quarter":
-                    if (query.Quarter is null or < 1 or > 4)
-                    {
-                        throw new ApiException("quarter must be between 1 and 4 when periodType is quarter.", StatusCodes.Status400BadRequest);
-                    }
-                    break;
-                case "year":
-                    break;
-                default:
-                    throw new ApiException("periodType must be month, quarter, or year.", StatusCodes.Status400BadRequest);
+                TypeMonth => BuildMonthPeriod(query),
+                TypeQuarter => BuildQuarterPeriod(query),
+                TypeYear => new PeriodInfo(TypeYear, null, query.Year, 1, 12, new DateOnly(query.Year, 1, 1)),
+                _ => throw new ApiException("type must be MONTH, QUARTER, or YEAR.", StatusCodes.Status400BadRequest)
+            };
+        }
+
+        private static PeriodInfo BuildMonthPeriod(Query query)
+        {
+            if (query.Month is null or < 1 or > 12)
+            {
+                throw new ApiException("month must be between 1 and 12 when type is MONTH.", StatusCodes.Status400BadRequest);
             }
+
+            return new PeriodInfo(
+                TypeMonth,
+                query.Month,
+                query.Year,
+                query.Month.Value,
+                query.Month.Value,
+                new DateOnly(query.Year, query.Month.Value, 1));
+        }
+
+        private static PeriodInfo BuildQuarterPeriod(Query query)
+        {
+            if (query.Month is null or < 1 or > 4)
+            {
+                throw new ApiException("month must be between 1 and 4 when type is QUARTER.", StatusCodes.Status400BadRequest);
+            }
+
+            var startMonth = ((query.Month.Value - 1) * 3) + 1;
+            return new PeriodInfo(
+                TypeQuarter,
+                query.Month,
+                query.Year,
+                startMonth,
+                startMonth + 2,
+                new DateOnly(query.Year, startMonth, 1));
         }
     }
 }

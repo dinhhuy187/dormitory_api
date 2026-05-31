@@ -6,6 +6,7 @@ public class ContractTemplate
 
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public Guid? RoomTypeId { get; set; }
     public int Version { get; set; }
     public string Content { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;

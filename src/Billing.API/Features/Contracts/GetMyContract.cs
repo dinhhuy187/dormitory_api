@@ -13,6 +13,7 @@ public static class GetMyContract
         Guid? LatestInvoiceId,
         Guid? RoomId,
         Guid ContractTemplateId,
+        Guid? RoomTypeId,
         string Code,
         string Name,
         int Version,
@@ -40,7 +41,7 @@ public static class GetMyContract
                 })
                 .WithTags("Billing - Contracts")
                 .WithName("GetMyContract")
-                .WithDescription("Required role: Student. Gets contract template information for the authenticated student. Uses JWT user id as StudentId. Source is LatestInvoice when an invoice has a contract snapshot, otherwise ActiveTemplate.")
+                .WithDescription("Required role: Student. Gets contract template information for the authenticated student. Uses JWT user id as StudentId. Source is LatestInvoice when an invoice has a contract snapshot, otherwise ActiveTemplate from the active generic fallback template where RoomTypeId is null. Room-type-specific templates are not returned as fallback without an invoice-derived room type.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<Response>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
@@ -70,9 +71,11 @@ public static class GetMyContract
                 template = await dbContext.ContractTemplates
                     .AsNoTracking()
                     .Where(contractTemplate => contractTemplate.IsActive &&
+                                               contractTemplate.RoomTypeId == null &&
                                                contractTemplate.EffectiveFrom <= today &&
                                                (contractTemplate.EffectiveTo == null || contractTemplate.EffectiveTo >= today))
                     .OrderByDescending(contractTemplate => contractTemplate.EffectiveFrom)
+                    .ThenByDescending(contractTemplate => contractTemplate.Version)
                     .FirstOrDefaultAsync(cancellationToken);
             }
 
@@ -86,6 +89,7 @@ public static class GetMyContract
                 latestInvoice?.Id,
                 latestInvoice?.RoomId,
                 template.Id,
+                template.RoomTypeId,
                 template.Code,
                 template.Name,
                 template.Version,

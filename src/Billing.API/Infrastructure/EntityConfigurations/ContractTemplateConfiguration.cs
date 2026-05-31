@@ -13,6 +13,7 @@ public class ContractTemplateConfiguration : IEntityTypeConfiguration<ContractTe
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Code).IsRequired().HasMaxLength(50);
         builder.Property(t => t.Name).IsRequired().HasMaxLength(200);
+        builder.Property(t => t.RoomTypeId);
         builder.Property(t => t.Content).IsRequired();
         builder.Property(t => t.IsActive).IsRequired();
         builder.Property(t => t.EffectiveFrom).IsRequired();
@@ -21,5 +22,6 @@ public class ContractTemplateConfiguration : IEntityTypeConfiguration<ContractTe
 
         builder.HasIndex(t => new { t.Code, t.Version }).IsUnique();
         builder.HasIndex(t => new { t.IsActive, t.EffectiveFrom });
+        builder.HasIndex(t => new { t.RoomTypeId, t.IsActive, t.EffectiveFrom });
     }
 }

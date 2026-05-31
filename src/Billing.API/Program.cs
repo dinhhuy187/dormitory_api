@@ -27,6 +27,12 @@ builder.Services.AddGrpcClient<RoomBillingReader.RoomBillingReaderClient>(option
 });
 builder.Services.AddScoped<IRoomBillingClient, RoomBillingClient>();
 
+builder.Services.AddHttpClient("RoomServiceClient", client =>
+{
+    client.BaseAddress = new Uri("http://room-api");
+})
+.AddStandardResilienceHandler();
+
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 
@@ -43,8 +49,10 @@ var app = builder.Build();
 
 await using var scope = app.Services.CreateAsyncScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
+var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+var seedLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("BillingSeedData");
 await dbContext.Database.MigrateAsync();
-await SeedData.SeedAsync(dbContext);
+await SeedData.SeedAsync(dbContext, httpClientFactory, seedLogger);
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
