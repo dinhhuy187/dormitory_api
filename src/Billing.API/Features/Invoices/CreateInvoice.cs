@@ -30,6 +30,8 @@ public static class CreateInvoice
         short Month,
         int Year,
         int RoomCapacity,
+        string BuildingCode,
+        int Floor,
         int ElectricityOldIndex,
         int ElectricityNewIndex,
         decimal ElectricityUsage,
@@ -97,7 +99,7 @@ public static class CreateInvoice
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("CreateInvoice")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Creates a monthly invoice for a room. Room existence and capacity are resolved through RoomService gRPC. Old meter indices are derived from the latest room invoice. New invoice status is Unpaid. Status values are Unpaid and Paid. Electricity receives 8% VAT; water prices already include fees and tax.")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Creates a monthly invoice for a room. Room existence, capacity, building code, and floor are resolved through RoomService gRPC; building code and floor are stored as invoice snapshots. Old meter indices are derived from the latest non-canceled room invoice. New invoice status is Unpaid. Status values are Unpaid, Paid, and Canceled. Electricity receives 8% VAT; water prices already include fees and tax.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .AddEndpointFilter<ValidationFilter<Command>>()
                 .Produces<Response>(StatusCodes.Status201Created)
@@ -128,7 +130,8 @@ public static class CreateInvoice
 
             var previousInvoice = await dbContext.Invoices
                 .AsNoTracking()
-                .Where(invoice => invoice.RoomId == command.RoomId)
+                .Where(invoice => invoice.RoomId == command.RoomId &&
+                                  invoice.Status != InvoiceStatus.Canceled)
                 .OrderByDescending(invoice => invoice.BillingYear)
                 .ThenByDescending(invoice => invoice.BillingMonth)
                 .ThenByDescending(invoice => invoice.CreatedAt)
@@ -182,6 +185,8 @@ public static class CreateInvoice
             var invoice = new Invoice
             {
                 RoomId = command.RoomId,
+                BuildingCode = room.BuildingCode.Trim(),
+                Floor = room.Floor,
                 StudentId = studentId,
                 BillingMonth = command.Month,
                 BillingYear = command.Year,
@@ -225,6 +230,8 @@ public static class CreateInvoice
                 invoice.BillingMonth,
                 invoice.BillingYear,
                 room.Capacity,
+                room.BuildingCode,
+                room.Floor,
                 invoice.ElectricityOldIndex,
                 invoice.ElectricityNewIndex,
                 invoice.ElectricityUsage,

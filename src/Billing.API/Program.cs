@@ -41,13 +41,10 @@ builder.Services.AddOpenApi(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    await using var scope = app.Services.CreateAsyncScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
-    await dbContext.Database.MigrateAsync();
-    await SeedData.SeedAsync(dbContext);
-}
+await using var scope = app.Services.CreateAsyncScope();
+var dbContext = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
+await dbContext.Database.MigrateAsync();
+await SeedData.SeedAsync(dbContext);
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();

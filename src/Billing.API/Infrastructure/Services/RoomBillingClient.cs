@@ -26,6 +26,11 @@ public sealed class RoomBillingClient(RoomBillingReader.RoomBillingReaderClient 
                 throw new ApiException("RoomService returned invalid room billing data.", StatusCodes.Status502BadGateway);
             }
 
+            if (string.IsNullOrWhiteSpace(response.BuildingCode) || response.Floor <= 0)
+            {
+                throw new ApiException("RoomService returned invalid room location data.", StatusCodes.Status502BadGateway);
+            }
+
             return new RoomBillingInfo(
                 parsedRoomId,
                 response.RoomNumber,
@@ -33,7 +38,9 @@ public sealed class RoomBillingClient(RoomBillingReader.RoomBillingReaderClient 
                 response.RoomTypeName,
                 response.Capacity,
                 response.OccupiedCount,
-                response.Status);
+                response.Status,
+                response.BuildingCode.Trim(),
+                response.Floor);
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)
         {

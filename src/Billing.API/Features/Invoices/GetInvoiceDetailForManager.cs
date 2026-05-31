@@ -21,7 +21,7 @@ public static class GetInvoiceDetailForManager
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetInvoiceDetailForManager")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Gets full invoice detail for review before payment update. Status values are Unpaid and Paid. Response includes meter indices, tier snapshots, surcharges, totals, payment metadata, and contract template snapshot id.")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Gets full invoice detail for review before payment update. Status values are Unpaid, Paid, and Canceled. Response includes room location snapshot, meter indices, tier snapshots, surcharges, totals, payment metadata, and contract template snapshot id.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .Produces<InvoiceDetailResponse>(StatusCodes.Status200OK);
         }

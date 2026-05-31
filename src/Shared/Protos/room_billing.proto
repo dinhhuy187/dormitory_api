@@ -21,4 +21,6 @@ message GetRoomBillingInfoResponse {
   int32 capacity = 6;
   int32 occupied_count = 7;
   string status = 8;
+  string building_code = 9;
+  int32 floor = 10;
 }

@@ -28,7 +28,7 @@ public static class GetMyInvoiceDetail
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetMyInvoiceDetail")
-                .WithDescription("Required role: Student. Gets full invoice detail for the authenticated student only. Status values are Unpaid and Paid. Response includes old/new meter indices, tier snapshots, surcharges, totals, payment status, and contract template snapshot id.")
+                .WithDescription("Required role: Student. Gets full invoice detail for the authenticated student only. Status values are Unpaid, Paid, and Canceled. Response includes room location snapshot, old/new meter indices, tier snapshots, surcharges, totals, payment status, and contract template snapshot id.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<InvoiceDetailResponse>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);

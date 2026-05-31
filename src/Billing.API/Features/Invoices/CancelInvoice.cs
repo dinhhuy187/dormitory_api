@@ -7,36 +7,35 @@ using Shared.Endpoints;
 
 namespace Billing.API.Features.Invoices;
 
-public static class MarkInvoiceAsPaid
+public static class CancelInvoice
 {
     public sealed record Response(
         Guid InvoiceId,
         string Status,
-        DateTime PaidAt,
-        Guid UpdatedByUserId,
-        decimal TotalAmount);
+        DateTime CanceledAt,
+        Guid UpdatedByUserId);
 
     public sealed class Endpoint : IEndpoint
     {
         public void MapEndpoint(IEndpointRouteBuilder app)
         {
-            app.MapPatch("/api/billing/invoices/{invoiceId:guid}/payment", async (
+            app.MapDelete("/api/billing/invoices/{invoiceId:guid}", async (
                     Guid invoiceId,
                     Handler handler,
                     HttpContext httpContext,
                     CancellationToken ct) =>
                 {
-                    if (!CurrentUser.TryGetUserId(httpContext.User, out var managerId))
+                    if (!CurrentUser.TryGetUserId(httpContext.User, out var updatedByUserId))
                     {
                         return Results.Unauthorized();
                     }
 
-                    var response = await handler.ExecuteAsync(invoiceId, managerId, ct);
+                    var response = await handler.ExecuteAsync(invoiceId, updatedByUserId, ct);
                     return Results.Ok(new ApiResponse<Response>(response));
                 })
                 .WithTags("Billing - Invoices")
-                .WithName("MarkInvoiceAsPaid")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Marks an invoice as paid. The only allowed state transition is Unpaid to Paid; Canceled invoices cannot be paid. Status values are Unpaid, Paid, and Canceled. PaidAt is set to current UTC time and UpdatedByUserId is taken from the authenticated JWT user id.")
+                .WithName("CancelInvoice")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Soft-cancels an invoice; DELETE does not hard delete the database row, surcharge lines, or tier snapshots. Only Unpaid invoices can be canceled. Status values are Unpaid, Paid, and Canceled.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .Produces<Response>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
@@ -53,28 +52,22 @@ public static class MarkInvoiceAsPaid
 
             if (invoice.Status == InvoiceStatus.Paid)
             {
-                throw new ApiException("Invoice has already been paid.", StatusCodes.Status409Conflict);
+                throw new ApiException("Paid invoices cannot be canceled.", StatusCodes.Status409Conflict);
             }
 
             if (invoice.Status == InvoiceStatus.Canceled)
             {
-                throw new ApiException("Canceled invoices cannot be marked as paid.", StatusCodes.Status409Conflict);
+                throw new ApiException("Invoice has already been canceled.", StatusCodes.Status409Conflict);
             }
 
             var now = DateTime.UtcNow;
-            invoice.Status = InvoiceStatus.Paid;
-            invoice.PaidAt = now;
+            invoice.Status = InvoiceStatus.Canceled;
             invoice.UpdatedByUserId = updatedByUserId;
             invoice.UpdatedAt = now;
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            return new Response(
-                invoice.Id,
-                invoice.Status.ToString(),
-                now,
-                updatedByUserId,
-                invoice.TotalAmount);
+            return new Response(invoice.Id, invoice.Status.ToString(), now, updatedByUserId);
         }
     }
 }

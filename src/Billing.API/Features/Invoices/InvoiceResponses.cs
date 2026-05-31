@@ -16,6 +16,8 @@ public sealed record InvoiceListItemResponse(
 public sealed record InvoiceDetailResponse(
     Guid InvoiceId,
     Guid RoomId,
+    string? BuildingCode,
+    int? Floor,
     Guid StudentId,
     short Month,
     int Year,
@@ -74,6 +76,8 @@ public static class InvoiceResponseMapper
         return new InvoiceDetailResponse(
             invoice.Id,
             invoice.RoomId,
+            invoice.BuildingCode,
+            invoice.Floor,
             invoice.StudentId,
             invoice.BillingMonth,
             invoice.BillingYear,

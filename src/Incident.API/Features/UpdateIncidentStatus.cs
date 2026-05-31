@@ -51,7 +51,7 @@ public static class UpdateIncidentStatus
             })
             .WithTags("Incidents")
             .WithName("UpdateIncidentStatus")
-            .RequireAuthorization(policy => policy.RequireRole("Admin", "Staff"))
+            .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager"))
             .Produces<Response>(StatusCodes.Status200OK)
             .ProducesValidationProblem();
         }

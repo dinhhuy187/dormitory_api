@@ -7,6 +7,8 @@ public class Invoice
     public Guid Id { get; set; } = Guid.NewGuid();
 
     public Guid RoomId { get; set; }
+    public string? BuildingCode { get; set; }
+    public int? Floor { get; set; }
     public Guid StudentId { get; set; }
     public short BillingMonth { get; set; }
     public int BillingYear { get; set; }

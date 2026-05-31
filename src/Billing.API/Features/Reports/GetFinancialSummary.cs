@@ -35,7 +35,7 @@ public static class GetFinancialSummary
                 })
                 .WithTags("Billing - Reports")
                 .WithName("GetFinancialSummary")
-                .WithDescription("Required role: Admin. Returns financial KPI summary. periodType accepts month, quarter, or year. For month, provide month 1-12. For quarter, provide quarter 1-4. TotalRevenue sums Paid invoices; TotalOutstanding sums Unpaid invoices.")
+                .WithDescription("Required role: Admin. Returns financial KPI summary. periodType accepts month, quarter, or year. For month, provide month 1-12. For quarter, provide quarter 1-4. Status values are Unpaid, Paid, and Canceled. TotalRevenue sums Paid invoices; TotalOutstanding sums Unpaid invoices; Canceled invoices are ignored by money totals.")
                 .RequireAuthorization(policy => policy.RequireRole("Admin"))
                 .Produces<Response>(StatusCodes.Status200OK);
         }

@@ -12,4 +12,6 @@ public sealed record RoomBillingInfo(
     string RoomTypeName,
     int Capacity,
     int OccupiedCount,
-    string Status);
+    string Status,
+    string BuildingCode,
+    int Floor);

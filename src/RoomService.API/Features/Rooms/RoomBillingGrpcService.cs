@@ -27,7 +27,9 @@ public sealed class RoomBillingGrpcService(RoomDbContext dbContext) : RoomBillin
                 RoomTypeName = r.RoomType!.Name,
                 r.RoomType.Capacity,
                 r.OccupiedCount,
-                Status = r.RoomStatus.ToString()
+                Status = r.RoomStatus.ToString(),
+                BuildingCode = r.Building!.Code,
+                r.Floor
             })
             .FirstOrDefaultAsync(context.CancellationToken);
 
@@ -49,7 +51,9 @@ public sealed class RoomBillingGrpcService(RoomDbContext dbContext) : RoomBillin
             RoomTypeName = room.RoomTypeName,
             Capacity = room.Capacity,
             OccupiedCount = room.OccupiedCount,
-            Status = room.Status
+            Status = room.Status,
+            BuildingCode = room.BuildingCode,
+            Floor = room.Floor
         };
     }
 }

@@ -39,7 +39,7 @@ public static class GetMyInvoices
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetMyInvoices")
-                .WithDescription("Required role: Student. Lists invoices for the authenticated student. Optional filters are year, month, and status. Status enum values are Unpaid and Paid. Pagination uses page and pageSize; defaults are page=1 and pageSize=20.")
+                .WithDescription("Required role: Student. Lists invoices for the authenticated student. Optional filters are year, month, and status. Status enum values are Unpaid, Paid, and Canceled. Pagination uses page and pageSize; defaults are page=1 and pageSize=20.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<IReadOnlyList<InvoiceListItemResponse>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);

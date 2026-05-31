@@ -41,7 +41,7 @@ public static class GetIncidents
             })
             .WithTags("Incidents")
             .WithName("GetIncidents")
-            .RequireAuthorization(policy => policy.RequireRole("Admin", "Staff"))
+            .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager"))
             .Produces<List<IncidentDto>>(StatusCodes.Status200OK);
         }
     }
