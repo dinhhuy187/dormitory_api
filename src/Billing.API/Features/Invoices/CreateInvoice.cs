@@ -46,16 +46,6 @@ public static class CreateInvoice
         decimal TotalAmount,
         string Status);
 
-    private sealed record TierSnapshotItem(
-        string TierName,
-        decimal FromUsage,
-        decimal? ToUsage,
-        decimal Usage,
-        decimal UnitPrice,
-        decimal Amount);
-
-    private sealed record CalculationResult(decimal Amount, IReadOnlyList<TierSnapshotItem> Snapshot);
-
     public sealed class Validator : AbstractValidator<Command>
     {
         public Validator()
@@ -154,10 +144,10 @@ public static class CreateInvoice
             var waterUsage = command.WaterIndex - waterOldIndex;
             var billingDate = new DateOnly(command.Year, command.Month, 1);
 
-            var electricityTiers = await GetApplicableTiersAsync(ServiceType.Electricity, room.Capacity, billingDate, cancellationToken);
-            var waterTiers = await GetApplicableTiersAsync(ServiceType.Water, room.Capacity, billingDate, cancellationToken);
+            var electricityTiers = await InvoiceCalculationHelper.GetApplicableTiersAsync(dbContext, ServiceType.Electricity, room.Capacity, billingDate, cancellationToken);
+            var waterTiers = await InvoiceCalculationHelper.GetApplicableTiersAsync(dbContext, ServiceType.Water, room.Capacity, billingDate, cancellationToken);
 
-            var electricityCalculation = CalculateTieredAmount(electricityUsage, electricityTiers);
+            var electricityCalculation = InvoiceCalculationHelper.CalculateTieredAmount(electricityUsage, electricityTiers);
             var electricitySubtotal = electricityCalculation.Amount;
             var electricityVatAmount = Math.Round(electricitySubtotal * 0.08m, 2);
             var electricityAmount = electricitySubtotal + electricityVatAmount;
@@ -165,10 +155,10 @@ public static class CreateInvoice
 
             if (electricityVatAmount > 0)
             {
-                electricitySnapshot.Add(new TierSnapshotItem("VAT 8%", 0, null, 0, 0.08m, electricityVatAmount));
+                electricitySnapshot.Add(new InvoiceCalculationHelper.TierSnapshotItem("VAT 8%", 0, null, 0, 0.08m, electricityVatAmount));
             }
 
-            var waterCalculation = CalculateTieredAmount(waterUsage, waterTiers);
+            var waterCalculation = InvoiceCalculationHelper.CalculateTieredAmount(waterUsage, waterTiers);
             var waterAmount = waterCalculation.Amount;
             var surchargeTotal = command.Surcharges.Sum(line => line.Amount);
             var totalAmount = electricityAmount + waterAmount + surchargeTotal;
@@ -258,98 +248,5 @@ public static class CreateInvoice
                 invoice.Status.ToString());
         }
 
-        private async Task<IReadOnlyList<ServicePriceTier>> GetApplicableTiersAsync(
-            ServiceType serviceType,
-            int roomCapacity,
-            DateOnly billingDate,
-            CancellationToken cancellationToken)
-        {
-            var candidateTiers = await dbContext.ServicePriceTiers
-                .AsNoTracking()
-                .Where(tier => tier.ServiceType == serviceType &&
-                               tier.IsActive &&
-                               tier.EffectiveFrom <= billingDate &&
-                               (tier.EffectiveTo == null || tier.EffectiveTo >= billingDate) &&
-                               (tier.RoomCapacity == roomCapacity || tier.RoomCapacity == null))
-                .OrderBy(tier => tier.FromUsage)
-                .ToListAsync(cancellationToken);
-
-            var exactTiers = candidateTiers
-                .Where(tier => tier.RoomCapacity == roomCapacity)
-                .OrderBy(tier => tier.FromUsage)
-                .ToList();
-
-            var selectedTiers = exactTiers.Count > 0
-                ? exactTiers
-                : candidateTiers
-                    .Where(tier => tier.RoomCapacity == null)
-                    .OrderBy(tier => tier.FromUsage)
-                    .ToList();
-
-            if (selectedTiers.Count == 0)
-            {
-                throw new ApiException($"No active {serviceType} price tiers found for room capacity {roomCapacity}.", StatusCodes.Status400BadRequest);
-            }
-
-            if (selectedTiers[^1].ToUsage is not null)
-            {
-                throw new ApiException($"{serviceType} price tiers must include a final open-ended tier.", StatusCodes.Status400BadRequest);
-            }
-
-            return selectedTiers;
-        }
-
-        private static CalculationResult CalculateTieredAmount(decimal usage, IReadOnlyList<ServicePriceTier> tiers)
-        {
-            if (usage <= 0)
-            {
-                return new CalculationResult(0, []);
-            }
-
-            var remainingUsage = usage;
-            var previousUpperUsage = 0m;
-            var amount = 0m;
-            var snapshot = new List<TierSnapshotItem>();
-
-            foreach (var tier in tiers)
-            {
-                if (remainingUsage <= 0)
-                {
-                    break;
-                }
-
-                var tierCapacity = tier.ToUsage is null
-                    ? remainingUsage
-                    : Math.Max(tier.ToUsage.Value - previousUpperUsage, 0);
-
-                var tierUsage = Math.Min(remainingUsage, tierCapacity);
-                if (tierUsage <= 0)
-                {
-                    previousUpperUsage = tier.ToUsage ?? previousUpperUsage;
-                    continue;
-                }
-
-                var tierAmount = tierUsage * tier.UnitPrice;
-                amount += tierAmount;
-                remainingUsage -= tierUsage;
-
-                snapshot.Add(new TierSnapshotItem(
-                    tier.TierName,
-                    tier.FromUsage,
-                    tier.ToUsage,
-                    tierUsage,
-                    tier.UnitPrice,
-                    tierAmount));
-
-                previousUpperUsage = tier.ToUsage ?? previousUpperUsage + tierUsage;
-            }
-
-            if (remainingUsage > 0)
-            {
-                throw new ApiException("Usage exceeds configured price tiers.", StatusCodes.Status400BadRequest);
-            }
-
-            return new CalculationResult(amount, snapshot);
-        }
     }
 }

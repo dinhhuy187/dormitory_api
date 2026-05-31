@@ -59,6 +59,7 @@ catch (Exception ex)
 
 app.UseAuthorization();
 
+app.MapBookingSyncEndpoints();
 app.MapFeeTemplateEndpoints();
 app.MapBookingEndpoints();
 app.Run();

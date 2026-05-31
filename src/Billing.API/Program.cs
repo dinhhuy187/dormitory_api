@@ -33,6 +33,12 @@ builder.Services.AddHttpClient("RoomServiceClient", client =>
 })
 .AddStandardResilienceHandler();
 
+builder.Services.AddHttpClient("BookingServiceClient", client =>
+{
+    client.BaseAddress = new Uri("http://booking-api");
+})
+.AddStandardResilienceHandler();
+
 builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 
@@ -50,9 +56,10 @@ var app = builder.Build();
 await using var scope = app.Services.CreateAsyncScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
 var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+var roomBillingClient = scope.ServiceProvider.GetRequiredService<IRoomBillingClient>();
 var seedLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("BillingSeedData");
 await dbContext.Database.MigrateAsync();
-await SeedData.SeedAsync(dbContext, httpClientFactory, seedLogger);
+await SeedData.SeedAsync(dbContext, httpClientFactory, roomBillingClient, seedLogger);
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();

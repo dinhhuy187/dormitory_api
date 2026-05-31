@@ -1,8 +1,11 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Billing.API.Domain.Entities;
 using Billing.API.Domain.Enums;
+using Billing.API.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Shared;
 
 namespace Billing.API.Infrastructure.Database;
 
@@ -13,6 +16,7 @@ public static class SeedData
     public static async Task SeedAsync(
         BillingDbContext dbContext,
         IHttpClientFactory httpClientFactory,
+        IRoomBillingClient roomBillingClient,
         ILogger logger,
         CancellationToken cancellationToken = default)
     {
@@ -20,6 +24,10 @@ public static class SeedData
         var roomTypes = await GetRoomTypesFromRoomServiceAsync(httpClientFactory, logger, cancellationToken);
         await DeactivateLegacyContractTemplateAsync(dbContext, logger, cancellationToken);
         await SeedContractTemplatesAsync(dbContext, roomTypes, logger, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var bookings = await GetBookingsFromBookingServiceAsync(httpClientFactory, logger, cancellationToken);
+        await SeedInvoicesAndSurchargesAsync(dbContext, bookings, roomBillingClient, logger, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -353,6 +361,398 @@ public static class SeedData
         return "Tiêu chuẩn";
     }
 
+    private static async Task<IReadOnlyList<BookingBillingSyncDto>> GetBookingsFromBookingServiceAsync(
+        IHttpClientFactory httpClientFactory,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        const int maxAttempts = 8;
+        var client = httpClientFactory.CreateClient("BookingServiceClient");
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                var bookings = await client.GetFromJsonAsync<List<BookingBillingSyncDto>>(
+                    "/api/bookings/sync",
+                    cancellationToken);
+
+                if (bookings is { Count: > 0 })
+                {
+                    logger.LogInformation("Synced {BookingCount} bookings from BookingService for Billing invoice seed.", bookings.Count);
+                    return bookings;
+                }
+
+                logger.LogWarning(
+                    "BookingService sync returned no eligible bookings on attempt {Attempt}/{MaxAttempts}.",
+                    attempt,
+                    maxAttempts);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Failed to sync bookings from BookingService on attempt {Attempt}/{MaxAttempts}.",
+                    attempt,
+                    maxAttempts);
+            }
+
+            if (attempt < maxAttempts)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            }
+        }
+
+        logger.LogError("BookingService sync did not return eligible bookings after {MaxAttempts} attempts. Billing invoice seed will be skipped.", maxAttempts);
+        return [];
+    }
+
+    private static async Task SeedInvoicesAndSurchargesAsync(
+        BillingDbContext dbContext,
+        IReadOnlyList<BookingBillingSyncDto> bookings,
+        IRoomBillingClient roomBillingClient,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        var eligibleBookings = bookings
+            .Where(booking => string.Equals(booking.Status, "Confirmed", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(booking.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(booking => booking.StartDate)
+            .ThenBy(booking => booking.RoomId)
+            .ThenBy(booking => booking.StudentId)
+            .ToList();
+
+        if (eligibleBookings.Count == 0)
+        {
+            logger.LogInformation("No confirmed or active bookings were available for Billing invoice seed.");
+            return;
+        }
+
+        var currentMonth = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        var candidates = eligibleBookings
+            .SelectMany(booking => GetCandidateMonths(booking, currentMonth)
+                .Select(period => new SeedInvoiceCandidate(booking, period.Year, period.Month)))
+            .GroupBy(candidate => new InvoiceSeedKey(candidate.Booking.RoomId, candidate.Year, candidate.Month))
+            .Select(group => group.First())
+            .OrderBy(candidate => candidate.Booking.RoomId)
+            .ThenBy(candidate => candidate.Year)
+            .ThenBy(candidate => candidate.Month)
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            logger.LogInformation("No elapsed booking months were available for Billing invoice seed.");
+            return;
+        }
+
+        var candidateRoomIds = candidates
+            .Select(candidate => candidate.Booking.RoomId)
+            .Distinct()
+            .ToList();
+
+        var existingInvoices = await dbContext.Invoices
+            .AsNoTracking()
+            .Where(invoice => candidateRoomIds.Contains(invoice.RoomId))
+            .Select(invoice => new
+            {
+                invoice.RoomId,
+                invoice.BillingYear,
+                invoice.BillingMonth,
+                invoice.ElectricityNewIndex,
+                invoice.WaterNewIndex,
+                invoice.Status,
+                invoice.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var existingKeys = existingInvoices
+            .Select(invoice => new InvoiceSeedKey(invoice.RoomId, invoice.BillingYear, invoice.BillingMonth))
+            .ToHashSet();
+
+        var continuityByRoom = existingInvoices
+            .Where(invoice => invoice.Status != InvoiceStatus.Canceled)
+            .GroupBy(invoice => invoice.RoomId)
+            .ToDictionary(
+                group => group.Key,
+                group =>
+                {
+                    var latest = group
+                        .OrderByDescending(invoice => invoice.BillingYear)
+                        .ThenByDescending(invoice => invoice.BillingMonth)
+                        .ThenByDescending(invoice => invoice.CreatedAt)
+                        .First();
+
+                    return new MeterState(
+                        latest.BillingYear,
+                        latest.BillingMonth,
+                        latest.ElectricityNewIndex,
+                        latest.WaterNewIndex);
+                });
+
+        var latestPeriodByRoomStudent = candidates
+            .GroupBy(candidate => new RoomStudentKey(candidate.Booking.RoomId, candidate.Booking.StudentId))
+            .ToDictionary(
+                group => group.Key,
+                group => group.Max(candidate => candidate.Year * 12 + candidate.Month));
+
+        var random = new Random(20260531);
+        var roomCache = new Dictionary<Guid, RoomBillingInfo?>();
+        var contractTemplateCache = new Dictionary<ContractTemplateSeedKey, Guid?>();
+        var createdCount = 0;
+        var skippedCount = 0;
+
+        foreach (var roomGroup in candidates.GroupBy(candidate => candidate.Booking.RoomId))
+        {
+            if (!roomCache.TryGetValue(roomGroup.Key, out var room))
+            {
+                room = await GetRoomBillingInfoForSeedAsync(roomBillingClient, roomGroup.Key, logger, cancellationToken);
+                roomCache[roomGroup.Key] = room;
+            }
+
+            if (room is null)
+            {
+                skippedCount += roomGroup.Count();
+                continue;
+            }
+
+            continuityByRoom.TryGetValue(roomGroup.Key, out var meterState);
+
+            foreach (var candidate in roomGroup.OrderBy(candidate => candidate.Year).ThenBy(candidate => candidate.Month))
+            {
+                var candidateKey = new InvoiceSeedKey(candidate.Booking.RoomId, candidate.Year, candidate.Month);
+                if (existingKeys.Contains(candidateKey))
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                var candidatePeriod = candidate.Year * 12 + candidate.Month;
+                if (meterState is not null && candidatePeriod <= meterState.Period)
+                {
+                    skippedCount++;
+                    continue;
+                }
+
+                var billingDate = new DateOnly(candidate.Year, candidate.Month, 1);
+                var createdAt = DateTime.SpecifyKind(billingDate.ToDateTime(TimeOnly.MinValue).AddDays(1), DateTimeKind.Utc);
+                var electricityOldIndex = meterState?.ElectricityNewIndex ?? 0;
+                var waterOldIndex = meterState?.WaterNewIndex ?? 0;
+                var electricityUsage = room.Capacity * random.Next(12, 26);
+                var waterUsage = room.Capacity * random.Next(2, 6);
+                var electricityNewIndex = electricityOldIndex + electricityUsage;
+                var waterNewIndex = waterOldIndex + waterUsage;
+
+                InvoiceCalculationHelper.CalculationResult electricityCalculation;
+                InvoiceCalculationHelper.CalculationResult waterCalculation;
+                try
+                {
+                    var electricityTiers = await InvoiceCalculationHelper.GetApplicableTiersAsync(
+                        dbContext,
+                        ServiceType.Electricity,
+                        room.Capacity,
+                        billingDate,
+                        cancellationToken);
+                    var waterTiers = await InvoiceCalculationHelper.GetApplicableTiersAsync(
+                        dbContext,
+                        ServiceType.Water,
+                        room.Capacity,
+                        billingDate,
+                        cancellationToken);
+
+                    electricityCalculation = InvoiceCalculationHelper.CalculateTieredAmount(electricityUsage, electricityTiers);
+                    waterCalculation = InvoiceCalculationHelper.CalculateTieredAmount(waterUsage, waterTiers);
+                }
+                catch (ApiException ex)
+                {
+                    skippedCount++;
+                    logger.LogError(
+                        ex,
+                        "Skipping Billing invoice seed for room {RoomId}, period {Year}-{Month} because price tiers are invalid or missing.",
+                        candidate.Booking.RoomId,
+                        candidate.Year,
+                        candidate.Month);
+                    continue;
+                }
+
+                var electricitySubtotal = electricityCalculation.Amount;
+                var electricityVatAmount = Math.Round(electricitySubtotal * 0.08m, 2);
+                var electricityAmount = electricitySubtotal + electricityVatAmount;
+                var electricitySnapshot = electricityCalculation.Snapshot.ToList();
+                if (electricityVatAmount > 0)
+                {
+                    electricitySnapshot.Add(new InvoiceCalculationHelper.TierSnapshotItem("VAT 8%", 0, null, 0, 0.08m, electricityVatAmount));
+                }
+
+                var surcharges = CreateRandomSurcharges(random, createdAt);
+                var surchargeTotal = surcharges.Sum(surcharge => surcharge.Amount);
+                var isLatestForRoomStudent = latestPeriodByRoomStudent[
+                    new RoomStudentKey(candidate.Booking.RoomId, candidate.Booking.StudentId)] == candidatePeriod;
+                var status = isLatestForRoomStudent ? InvoiceStatus.Unpaid : InvoiceStatus.Paid;
+                var paidAt = status == InvoiceStatus.Paid
+                    ? DateTime.SpecifyKind(billingDate.ToDateTime(TimeOnly.MinValue).AddDays(20), DateTimeKind.Utc)
+                    : (DateTime?)null;
+                var updatedAt = paidAt ?? createdAt;
+
+                var contractTemplateId = await GetContractTemplateIdForSeedAsync(
+                    dbContext,
+                    room.RoomTypeId,
+                    billingDate,
+                    contractTemplateCache,
+                    cancellationToken);
+
+                var invoice = new Invoice
+                {
+                    RoomId = candidate.Booking.RoomId,
+                    BuildingCode = room.BuildingCode.Trim(),
+                    Floor = room.Floor,
+                    StudentId = candidate.Booking.StudentId,
+                    BillingMonth = candidate.Month,
+                    BillingYear = candidate.Year,
+                    ElectricityOldIndex = electricityOldIndex,
+                    ElectricityNewIndex = electricityNewIndex,
+                    ElectricityUsage = electricityUsage,
+                    ElectricityTierSnapshot = JsonSerializer.Serialize(electricitySnapshot, JsonOptions),
+                    ElectricityAmount = electricityAmount,
+                    WaterOldIndex = waterOldIndex,
+                    WaterNewIndex = waterNewIndex,
+                    WaterUsage = waterUsage,
+                    WaterTierSnapshot = JsonSerializer.Serialize(waterCalculation.Snapshot, JsonOptions),
+                    WaterAmount = waterCalculation.Amount,
+                    SurchargeTotal = surchargeTotal,
+                    TotalAmount = electricityAmount + waterCalculation.Amount + surchargeTotal,
+                    Status = status,
+                    PaidAt = paidAt,
+                    UpdatedByUserId = null,
+                    ContractTemplateId = contractTemplateId,
+                    CreatedAt = createdAt,
+                    UpdatedAt = updatedAt
+                };
+
+                foreach (var surcharge in surcharges)
+                {
+                    invoice.Surcharges.Add(surcharge);
+                }
+
+                dbContext.Invoices.Add(invoice);
+                existingKeys.Add(candidateKey);
+                meterState = new MeterState(candidate.Year, candidate.Month, electricityNewIndex, waterNewIndex);
+                continuityByRoom[roomGroup.Key] = meterState;
+                createdCount++;
+            }
+        }
+
+        logger.LogInformation(
+            "Billing invoice seed completed. Created {CreatedCount} invoices and skipped {SkippedCount} candidates.",
+            createdCount,
+            skippedCount);
+    }
+
+    private static async Task<RoomBillingInfo?> GetRoomBillingInfoForSeedAsync(
+        IRoomBillingClient roomBillingClient,
+        Guid roomId,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var room = await roomBillingClient.GetRoomBillingInfoAsync(roomId, cancellationToken);
+            if (room is null)
+            {
+                logger.LogWarning("Skipping Billing invoice seed for room {RoomId} because RoomService returned not found.", roomId);
+            }
+
+            return room;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Skipping Billing invoice seed for room {RoomId} because RoomService lookup failed.", roomId);
+            return null;
+        }
+    }
+
+    private static IReadOnlyList<(int Year, short Month)> GetCandidateMonths(
+        BookingBillingSyncDto booking,
+        DateOnly currentMonth)
+    {
+        var startMonth = new DateOnly(booking.StartDate.Year, booking.StartDate.Month, 1);
+        var endMonth = new DateOnly(booking.EndDate.Year, booking.EndDate.Month, 1);
+        var months = new List<(int Year, short Month)>();
+
+        for (var month = startMonth; month <= endMonth && month <= currentMonth; month = month.AddMonths(1))
+        {
+            months.Add((month.Year, (short)month.Month));
+        }
+
+        return months.TakeLast(3).ToList();
+    }
+
+    private static IReadOnlyList<Surcharge> CreateRandomSurcharges(Random random, DateTime createdAt)
+    {
+        (string Name, int MinAmount, int MaxAmount)[] candidates =
+        [
+            ("Phí vệ sinh", 20000, 50000),
+            ("Phí wifi", 30000, 80000),
+            ("Phí bảo trì thiết bị", 20000, 120000),
+            ("Phí giữ xe", 50000, 100000)
+        ];
+
+        var lineCount = random.Next(1, 4);
+        return candidates
+            .OrderBy(_ => random.Next())
+            .Take(lineCount)
+            .Select(candidate =>
+            {
+                var amount = random.Next(candidate.MinAmount / 1000, candidate.MaxAmount / 1000 + 1) * 1000m;
+                return new Surcharge
+                {
+                    Name = candidate.Name,
+                    Amount = amount,
+                    CreatedAt = createdAt
+                };
+            })
+            .ToList();
+    }
+
+    private static async Task<Guid?> GetContractTemplateIdForSeedAsync(
+        BillingDbContext dbContext,
+        Guid roomTypeId,
+        DateOnly billingDate,
+        Dictionary<ContractTemplateSeedKey, Guid?> cache,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = new ContractTemplateSeedKey(roomTypeId, billingDate);
+        if (cache.TryGetValue(cacheKey, out var templateId))
+        {
+            return templateId;
+        }
+
+        templateId = await dbContext.ContractTemplates
+            .AsNoTracking()
+            .Where(template => template.IsActive &&
+                               template.RoomTypeId == roomTypeId &&
+                               template.EffectiveFrom <= billingDate &&
+                               (template.EffectiveTo == null || template.EffectiveTo >= billingDate))
+            .OrderByDescending(template => template.EffectiveFrom)
+            .ThenByDescending(template => template.Version)
+            .Select(template => (Guid?)template.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? await dbContext.ContractTemplates
+                .AsNoTracking()
+                .Where(template => template.IsActive &&
+                                   template.RoomTypeId == null &&
+                                   template.EffectiveFrom <= billingDate &&
+                                   (template.EffectiveTo == null || template.EffectiveTo >= billingDate))
+                .OrderByDescending(template => template.EffectiveFrom)
+                .ThenByDescending(template => template.Version)
+                .Select(template => (Guid?)template.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        cache[cacheKey] = templateId;
+        return templateId;
+    }
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     private sealed record RoomTypeSyncDto(
         Guid Id,
         string Name,
@@ -360,7 +760,32 @@ public static class SeedData
         decimal BasePrice,
         List<string> Amenities);
 
+    private sealed record BookingBillingSyncDto(
+        Guid BookingId,
+        Guid RoomId,
+        Guid StudentId,
+        string TermName,
+        DateTime StartDate,
+        DateTime EndDate,
+        int NumberOfMonths,
+        decimal PricePerMonth,
+        string Status,
+        DateTime CreatedAt);
+
+    private sealed record SeedInvoiceCandidate(BookingBillingSyncDto Booking, int Year, short Month);
+
+    private sealed record MeterState(int Year, short Month, int ElectricityNewIndex, int WaterNewIndex)
+    {
+        public int Period => Year * 12 + Month;
+    }
+
     private readonly record struct TierKey(ServiceType ServiceType, int? RoomCapacity, DateOnly EffectiveFrom, decimal FromUsage);
 
     private readonly record struct ContractTemplateKey(string Code, int Version);
+
+    private readonly record struct InvoiceSeedKey(Guid RoomId, int Year, short Month);
+
+    private readonly record struct RoomStudentKey(Guid RoomId, Guid StudentId);
+
+    private readonly record struct ContractTemplateSeedKey(Guid RoomTypeId, DateOnly BillingDate);
 }

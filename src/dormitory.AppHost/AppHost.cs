@@ -55,7 +55,9 @@ var incidentApi = builder.AddProject<Projects.Incident_API>("incident-api")
 var billingApi = builder.AddProject<Projects.Billing_API>("billing-api")
     .WithReference(billingDb)
     .WithReference(roomApi)
-    .WaitFor(roomApi);
+    .WithReference(bookingApi)
+    .WaitFor(roomApi)
+    .WaitFor(bookingApi);
 
 var chatApi = builder.AddProject<Projects.Chat_API>("chat-api")
     .WithReference(chatDb)
