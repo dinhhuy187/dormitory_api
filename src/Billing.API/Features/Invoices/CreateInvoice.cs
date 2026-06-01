@@ -110,7 +110,8 @@ public static class CreateInvoice
             var invoiceExists = await dbContext.Invoices.AnyAsync(
                 invoice => invoice.RoomId == command.RoomId &&
                            invoice.BillingYear == command.Year &&
-                           invoice.BillingMonth == command.Month,
+                           invoice.BillingMonth == command.Month &&
+                           invoice.InvoiceType == InvoiceType.MonthlyUtility,
                 cancellationToken);
 
             if (invoiceExists)
@@ -121,6 +122,7 @@ public static class CreateInvoice
             var previousInvoice = await dbContext.Invoices
                 .AsNoTracking()
                 .Where(invoice => invoice.RoomId == command.RoomId &&
+                                  invoice.InvoiceType == InvoiceType.MonthlyUtility &&
                                   invoice.Status != InvoiceStatus.Canceled)
                 .OrderByDescending(invoice => invoice.BillingYear)
                 .ThenByDescending(invoice => invoice.BillingMonth)

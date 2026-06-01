@@ -1,4 +1,5 @@
 using Billing.API.Domain.Entities;
+using Billing.API.Domain.Enums;
 using Billing.API.Infrastructure.Auth;
 using Billing.API.Infrastructure.Database;
 using Billing.API.Infrastructure.Services;
@@ -120,7 +121,8 @@ public static class GetMyContract
             var latestInvoice = await dbContext.Invoices
                 .AsNoTracking()
                 .Include(invoice => invoice.ContractTemplate)
-                .Where(invoice => invoice.StudentId == studentId)
+                .Where(invoice => invoice.StudentId == studentId &&
+                                  invoice.InvoiceType == InvoiceType.MonthlyUtility)
                 .OrderByDescending(invoice => invoice.BillingYear)
                 .ThenByDescending(invoice => invoice.BillingMonth)
                 .ThenByDescending(invoice => invoice.CreatedAt)

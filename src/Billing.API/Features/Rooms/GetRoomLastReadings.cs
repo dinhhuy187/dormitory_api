@@ -52,6 +52,7 @@ public static class GetRoomLastReadings
             var latestInvoice = await dbContext.Invoices
                 .AsNoTracking()
                 .Where(invoice => invoice.RoomId == roomId &&
+                                  invoice.InvoiceType == InvoiceType.MonthlyUtility &&
                                   invoice.Status != InvoiceStatus.Canceled)
                 .OrderByDescending(invoice => invoice.BillingYear)
                 .ThenByDescending(invoice => invoice.BillingMonth)

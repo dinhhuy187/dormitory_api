@@ -1,6 +1,7 @@
 using System.Reflection;
 using BookingService.Domain.Entities;
 using BookingService.Infrastructure.Models;
+using BookingService.Infrastructure.Sagas;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,6 +13,7 @@ public class BookingDbContext(DbContextOptions<BookingDbContext> options) : DbCo
     public DbSet<AcademicTermData> AcademicTerms { get; set; } 
     public DbSet<RoomData> Rooms { get; set; }
     public DbSet<FeeTemplate> FeeTemplates { get; set; }
+    public DbSet<BookingSagaState> BookingSagaStates { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

@@ -20,6 +20,7 @@ public class Booking : Entity, IAggregateRoot
     
     public BookingStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public DateTime PaymentDueAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
     private readonly List<BookingFee> _fees = [];
@@ -44,6 +45,7 @@ public class Booking : Entity, IAggregateRoot
         
         Status = BookingStatus.Pending;
         CreatedAt = DateTime.UtcNow;
+        PaymentDueAt = CreatedAt.AddHours(48);
         UpdatedAt = DateTime.UtcNow;
         
         RecalculateTotalPrice();
@@ -72,11 +74,31 @@ public class Booking : Entity, IAggregateRoot
         if (!isRoomAvailable)
             throw new DomainException("Phòng bạn chọn không tồn tại, đang bảo trì hoặc đã kín chỗ.");
 
-        var booking = new Booking(Guid.NewGuid(), roomId, userId, term, pricePerMonth);
+        return new Booking(Guid.NewGuid(), roomId, userId, term, pricePerMonth);
+    }
 
-        booking.AddDomainEvent(new BookingCreatedDomainEvent(booking.Id, booking.RoomId, booking.UserId));
+    public void MarkCreatedForPayment()
+    {
+        if (Status != BookingStatus.Pending)
+            throw new DomainException("Chá»‰ cÃ³ thá»ƒ táº¡o yÃªu cáº§u thanh toÃ¡n cho Ä‘Æ¡n Ä‘áº·t phÃ²ng Ä‘ang á»Ÿ tráº¡ng thÃ¡i Pending.");
 
-        return booking;
+        AddDomainEvent(new BookingCreatedDomainEvent(
+            Id,
+            RoomId,
+            UserId,
+            Term.TermName,
+            Term.StartDate,
+            Term.EndDate,
+            Term.NumberOfMonths,
+            PricePerMonth,
+            BasePrice,
+            TotalPrice,
+            CreatedAt,
+            PaymentDueAt,
+            Fees.Select(f => new BookingCreatedFeeSnapshot(
+                f.FeeName,
+                f.Amount,
+                f.IsRefundable)).ToArray()));
     }
 
     public void AddFee(string feeName, decimal amount, bool isRefundable = false)

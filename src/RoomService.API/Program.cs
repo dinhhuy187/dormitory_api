@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using DotNetEnv;
 using FluentValidation;
+using MassTransit;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Features.Rooms;
@@ -51,6 +52,29 @@ builder.Services.AddOpenApi(options =>
 
 builder.AddNpgsqlDbContext<RoomDbContext>("roomdb");
 
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<ReserveRoomCapacityCommandConsumer>();
+    x.AddConsumer<ReleaseRoomCapacityCommandConsumer>();
+
+    x.AddEntityFrameworkOutbox<RoomDbContext>(o =>
+    {
+        o.UsePostgres();
+        o.UseBusOutbox();
+    });
+
+    x.AddConfigureEndpointsCallback((context, name, cfg) =>
+    {
+        cfg.UseEntityFrameworkOutbox<RoomDbContext>(context);
+    });
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(builder.Configuration.GetConnectionString("rabbitmq"));
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 builder.Services.AddHandlersFromAssemblyContaining<Program>();
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
@@ -68,20 +92,18 @@ app.MapDefaultEndpoints();
 
 app.MapOpenApi("api/rooms/openapi/v1.json");
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+
+using var scope = app.Services.CreateScope();
+var dbContext = scope.ServiceProvider.GetRequiredService<RoomDbContext>();
+dbContext.Database.Migrate();
+try
 {
-    using var scope = app.Services.CreateScope();
-    var dbContext = scope.ServiceProvider.GetRequiredService<RoomDbContext>();
-    dbContext.Database.Migrate();
-    try
-    {
-        await SeedData.SeedAsync(dbContext);
-    }
-    catch (Exception ex)
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
-    }
+    await SeedData.SeedAsync(dbContext);
+}
+catch (Exception ex)
+{
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
 }
 
 app.MapGrpcService<RoomBillingGrpcService>();

@@ -452,7 +452,8 @@ public static class SeedData
 
         var existingInvoices = await dbContext.Invoices
             .AsNoTracking()
-            .Where(invoice => candidateRoomIds.Contains(invoice.RoomId))
+            .Where(invoice => candidateRoomIds.Contains(invoice.RoomId) &&
+                              invoice.InvoiceType == InvoiceType.MonthlyUtility)
             .Select(invoice => new
             {
                 invoice.RoomId,
@@ -602,6 +603,7 @@ public static class SeedData
 
                 var invoice = new Invoice
                 {
+                    InvoiceType = InvoiceType.MonthlyUtility,
                     RoomId = candidate.Booking.RoomId,
                     BuildingCode = room.BuildingCode.Trim(),
                     Floor = room.Floor,

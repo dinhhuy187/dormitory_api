@@ -1,4 +1,5 @@
 using Billing.API.Domain.Entities;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
 namespace Billing.API.Infrastructure.Database;
@@ -14,5 +15,8 @@ public class BillingDbContext(DbContextOptions<BillingDbContext> options) : DbCo
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(BillingDbContext).Assembly);
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
     }
 }

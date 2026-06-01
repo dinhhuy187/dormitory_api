@@ -1,4 +1,5 @@
 using Billing.API.Domain.Entities;
+using Billing.API.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,6 +18,9 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
 
         builder.HasKey(i => i.Id);
 
+        builder.Property(i => i.InvoiceType).IsRequired().HasConversion<string>().HasMaxLength(40);
+        builder.Property(i => i.TermName).HasMaxLength(100);
+        builder.Property(i => i.Description).HasMaxLength(500);
         builder.Property(i => i.BuildingCode).HasMaxLength(50);
         builder.Property(i => i.Floor);
         builder.Property(i => i.BillingMonth).IsRequired();
@@ -31,7 +35,12 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(i => i.CreatedAt).IsRequired();
         builder.Property(i => i.UpdatedAt).IsRequired();
 
-        builder.HasIndex(i => new { i.RoomId, i.BillingYear, i.BillingMonth }).IsUnique();
+        builder.HasIndex(i => new { i.RoomId, i.BillingYear, i.BillingMonth, i.InvoiceType })
+            .IsUnique()
+            .HasFilter("\"InvoiceType\" = 'MonthlyUtility'");
+        builder.HasIndex(i => i.BookingId)
+            .IsUnique()
+            .HasFilter("\"BookingId\" IS NOT NULL AND \"InvoiceType\" = 'BookingRegistration'");
         builder.HasIndex(i => new { i.RoomId, i.BillingYear, i.BillingMonth, i.CreatedAt })
             .IsDescending(false, true, true, true);
         builder.HasIndex(i => new { i.Status, i.BillingYear, i.BillingMonth });

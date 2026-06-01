@@ -1,9 +1,11 @@
 using Billing.API.Domain.Enums;
 using Billing.API.Infrastructure.Auth;
 using Billing.API.Infrastructure.Database;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
+using Shared.Contracts.Booking;
 
 namespace Billing.API.Features.Invoices;
 
@@ -43,7 +45,7 @@ public static class MarkInvoiceAsPaid
         }
     }
 
-    public sealed class Handler(BillingDbContext dbContext)
+    public sealed class Handler(BillingDbContext dbContext, IPublishEndpoint publishEndpoint)
     {
         public async Task<Response> ExecuteAsync(Guid invoiceId, Guid updatedByUserId, CancellationToken cancellationToken)
         {
@@ -67,6 +69,14 @@ public static class MarkInvoiceAsPaid
             invoice.UpdatedByUserId = updatedByUserId;
             invoice.UpdatedAt = now;
 
+
+            if (invoice.InvoiceType == InvoiceType.BookingRegistration && invoice.BookingId is not null)
+            {
+                await publishEndpoint.Publish(new PaymentSucceededIntegrationEvent(
+                    invoice.BookingId.Value,
+                    invoice.Id,
+                    now), cancellationToken);
+            }
             await dbContext.SaveChangesAsync(cancellationToken);
 
             return new Response(

@@ -23,7 +23,8 @@ var rabbitMq = builder.AddRabbitMQ("rabbitmq")
 
 var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
     .WithReference(profileDb)
-    .WithEndpoint(name: "grpc", scheme: "http")
+    .WithEnvironment("PROFILE_GRPC_PORT", "8081")
+    .WithEndpoint(name: "grpc", targetPort: 8081, scheme: "http")
     .WithEndpointsInEnvironment(endpoint => endpoint.Name != "grpc");
 
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
@@ -33,6 +34,7 @@ var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
 
 var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
     .WithReference(roomDb)
+    .WithReference(rabbitMq)
     .WithEnvironment("ROOM_GRPC_PORT", "8082")
     .WithEndpoint(name: "grpc", targetPort: 8082, scheme: "http")
     .WithEndpointsInEnvironment(endpoint => endpoint.Name != "grpc");
@@ -58,6 +60,7 @@ var billingApi = builder.AddProject<Projects.Billing_API>("billing-api")
     .WithReference(roomApi)
     .WithReference(bookingApi)
     .WithReference(profileApi)
+    .WithReference(rabbitMq)
     .WaitFor(roomApi)
     .WaitFor(bookingApi)
     .WaitFor(profileApi);

@@ -13,3 +13,9 @@ public enum RoomStatus
     FULL = 2,
     MAINTENANCE = 3
 }
+
+public enum RoomReservationStatus
+{
+    Reserved = 1,
+    Released = 2
+}

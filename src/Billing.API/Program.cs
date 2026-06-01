@@ -1,8 +1,10 @@
 using System.Reflection;
+using Billing.API.Infrastructure.EventHandlers;
 using Billing.API.Infrastructure.Database;
 using Billing.API.Infrastructure.Services;
 using DotNetEnv;
 using FluentValidation;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
@@ -20,6 +22,29 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.AddNpgsqlDbContext<BillingDbContext>("billingdb");
+
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<CreateBookingInvoiceCommandConsumer>();
+    x.AddConsumer<CancelBookingInvoiceCommandConsumer>();
+
+    x.AddEntityFrameworkOutbox<BillingDbContext>(o =>
+    {
+        o.UsePostgres();
+        o.UseBusOutbox();
+    });
+
+    x.AddConfigureEndpointsCallback((context, name, cfg) =>
+    {
+        cfg.UseEntityFrameworkOutbox<BillingDbContext>(context);
+    });
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(builder.Configuration.GetConnectionString("rabbitmq"));
+        cfg.ConfigureEndpoints(context);
+    });
+});
 
 var roomGrpcAddress = builder.Configuration["Services:room-api:grpc:0"] ?? "http://room-api:8082";
 builder.Services.AddGrpcClient<RoomBillingReader.RoomBillingReaderClient>(options =>

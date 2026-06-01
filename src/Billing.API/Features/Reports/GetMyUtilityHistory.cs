@@ -60,6 +60,7 @@ public static class GetMyUtilityHistory
             var invoicesQuery = dbContext.Invoices
                 .AsNoTracking()
                 .Where(invoice => invoice.StudentId == studentId &&
+                                  invoice.InvoiceType == InvoiceType.MonthlyUtility &&
                                   invoice.Status != InvoiceStatus.Canceled);
 
             if (query.Year.HasValue)
