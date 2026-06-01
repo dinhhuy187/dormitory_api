@@ -15,6 +15,9 @@ namespace RoomService.API.Features.Buildings
             string Name,
             GenderRestriction GenderRestriction,
             int TotalFloors,
+            string? BankCode,
+            string? AccountNumber,
+            string? AccountName,
             bool IsActive
             );
         public class Endpoint : IEndpoint
@@ -38,7 +41,17 @@ namespace RoomService.API.Features.Buildings
             {
                 var buildings = await dbContext.Buildings
                     .AsNoTracking()
-                    .Select(b => new Response(b.Id, b.ZoneName, b.Code, b.Name, b.GenderRestriction, b.TotalFloors, b.IsActive))
+                    .Select(b => new Response(
+                        b.Id,
+                        b.ZoneName,
+                        b.Code,
+                        b.Name,
+                        b.GenderRestriction,
+                        b.TotalFloors,
+                        b.BankCode,
+                        b.AccountNumber,
+                        b.AccountName,
+                        b.IsActive))
                     .ToListAsync(cancellationToken);
 
                 return new ApiResponse<List<Response>>(buildings);

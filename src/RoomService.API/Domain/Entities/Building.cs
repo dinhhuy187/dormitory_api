@@ -10,6 +10,9 @@ namespace RoomService.API.Domain.Entities
         public string Name { get; set; } = string.Empty;
         public GenderRestriction GenderRestriction { get; set; }
         public int TotalFloors { get; set; }
+        public string? BankCode { get; set; }
+        public string? AccountNumber { get; set; }
+        public string? AccountName { get; set; }
         public bool IsActive { get; set; } = true;
         public virtual ICollection<Room> Rooms { get; set; } = new List<Room>();
     }

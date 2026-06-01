@@ -20,6 +20,9 @@ namespace RoomService.API.Infrastructure.EntityConfigurations
             builder.Property(b => b.Name).IsRequired().HasMaxLength(100);
             builder.Property(b => b.GenderRestriction).IsRequired();
             builder.Property(b => b.TotalFloors).IsRequired();
+            builder.Property(b => b.BankCode).HasMaxLength(50);
+            builder.Property(b => b.AccountNumber).HasMaxLength(50);
+            builder.Property(b => b.AccountName).HasMaxLength(100);
             builder.Property(b => b.IsActive).IsRequired();
         }
     }
