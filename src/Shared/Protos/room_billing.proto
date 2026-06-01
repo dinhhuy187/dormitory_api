@@ -23,4 +23,11 @@ message GetRoomBillingInfoResponse {
   string status = 8;
   string building_code = 9;
   int32 floor = 10;
+  string bank_code = 11;
+  string account_number = 12;
+  string account_name = 13;
+  string building_id = 14;
+  string building_name = 15;
+  string base_price = 16;
+  repeated string amenities = 17;
 }

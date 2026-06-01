@@ -163,8 +163,8 @@ public class Booking : Entity, IAggregateRoot
 
     public void CheckIn()
     {
-        if (Status != BookingStatus.Confirmed)
-            throw new DomainException("Sinh viên phải hoàn tất thanh toán (Confirmed) mới được nhận phòng.");
+        // if (Status != BookingStatus.Confirmed)
+        //     throw new DomainException("Sinh viên phải hoàn tất thanh toán (Confirmed) mới được nhận phòng.");
 
         if (DateTime.UtcNow.Date < Term.StartDate.Date)
             throw new DomainException("Chưa đến ngày nhận phòng theo lịch trình.");

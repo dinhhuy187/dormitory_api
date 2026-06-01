@@ -5,7 +5,14 @@ namespace Billing.API.Features.Invoices;
 
 public sealed record InvoiceListItemResponse(
     Guid InvoiceId,
+    string InvoiceType,
+    Guid? BookingId,
     Guid RoomId,
+    string? BuildingCode,
+    int? Floor,
+    string? TermName,
+    DateTime? DueAt,
+    string? Description,
     short Month,
     int Year,
     decimal TotalAmount,
@@ -15,10 +22,16 @@ public sealed record InvoiceListItemResponse(
 
 public sealed record InvoiceDetailResponse(
     Guid InvoiceId,
+    string InvoiceType,
+    Guid? BookingId,
     Guid RoomId,
     string? BuildingCode,
     int? Floor,
+    BuildingBankAccountResponse? BuildingBankAccount,
     Guid StudentId,
+    string? TermName,
+    DateTime? DueAt,
+    string? Description,
     short Month,
     int Year,
     int ElectricityOldIndex,
@@ -41,6 +54,11 @@ public sealed record InvoiceDetailResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt);
 
+public sealed record BuildingBankAccountResponse(
+    string? BankCode,
+    string? AccountNumber,
+    string? AccountName);
+
 public sealed record TierSnapshotResponse(
     string TierName,
     decimal FromUsage,
@@ -62,7 +80,14 @@ public static class InvoiceResponseMapper
     {
         return new InvoiceListItemResponse(
             invoice.Id,
+            invoice.InvoiceType.ToString(),
+            invoice.BookingId,
             invoice.RoomId,
+            invoice.BuildingCode,
+            invoice.Floor,
+            invoice.TermName,
+            invoice.DueAt,
+            invoice.Description,
             invoice.BillingMonth,
             invoice.BillingYear,
             invoice.TotalAmount,
@@ -71,14 +96,22 @@ public static class InvoiceResponseMapper
             invoice.CreatedAt);
     }
 
-    public static InvoiceDetailResponse ToDetail(Invoice invoice)
+    public static InvoiceDetailResponse ToDetail(
+        Invoice invoice,
+        BuildingBankAccountResponse? buildingBankAccount = null)
     {
         return new InvoiceDetailResponse(
             invoice.Id,
+            invoice.InvoiceType.ToString(),
+            invoice.BookingId,
             invoice.RoomId,
             invoice.BuildingCode,
             invoice.Floor,
+            buildingBankAccount,
             invoice.StudentId,
+            invoice.TermName,
+            invoice.DueAt,
+            invoice.Description,
             invoice.BillingMonth,
             invoice.BillingYear,
             invoice.ElectricityOldIndex,

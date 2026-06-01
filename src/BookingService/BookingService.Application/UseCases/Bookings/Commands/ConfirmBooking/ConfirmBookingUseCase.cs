@@ -21,7 +21,7 @@ public class ConfirmBookingUseCase(IBookingRepository bookingRepository, IUnitOf
             }
 
             // 2. Gọi Core Domain để thực thi logic xác nhận
-            booking.Confirm();
+            booking.CheckIn();
 
             // 3. Đánh dấu Entity bị thay đổi (Với EF Core thường không cần Update nếu đã Tracking, 
             // nhưng gọi Update để đồng nhất interface)

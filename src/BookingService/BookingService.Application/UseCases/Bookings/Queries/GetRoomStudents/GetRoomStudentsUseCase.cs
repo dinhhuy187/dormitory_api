@@ -7,7 +7,8 @@ namespace BookingService.Application.UseCases.Bookings.Queries.GetRoomStudents;
 
 public sealed class GetRoomStudentsUseCase(
     IBookingRepository bookingRepository,
-    IStudentProfileReader studentProfileReader) : IGetRoomStudentsUseCase
+    IStudentProfileReader studentProfileReader,
+    IRoomDetailReader roomDetailReader) : IGetRoomStudentsUseCase
 {
     public async Task<Result<RoomStudentsResponse>> ExecuteAsync(
         GetRoomStudentsQuery query,
@@ -18,11 +19,19 @@ public sealed class GetRoomStudentsUseCase(
             return Result<RoomStudentsResponse>.Failure("RoomId is required.");
         }
 
+        var room = await roomDetailReader.GetRoomDetailAsync(query.RoomId, cancellationToken);
+        if (room is null)
+        {
+            return Result<RoomStudentsResponse>.Failure("Room not found.");
+        }
+
+        var roomResponse = MapRoom(room);
         var bookings = await bookingRepository.GetRoomOccupantBookingsAsync(query.RoomId, cancellationToken);
         if (bookings.Count == 0)
         {
             return Result<RoomStudentsResponse>.Success(new RoomStudentsResponse(
                 query.RoomId,
+                roomResponse,
                 0,
                 []));
         }
@@ -62,7 +71,27 @@ public sealed class GetRoomStudentsUseCase(
 
         return Result<RoomStudentsResponse>.Success(new RoomStudentsResponse(
             query.RoomId,
+            roomResponse,
             students.Count,
             students));
+    }
+
+    private static RoomDetailResponse MapRoom(RoomDetailSnapshot room)
+    {
+        return new RoomDetailResponse(
+            room.Id,
+            room.Name,
+            room.BuildingId,
+            room.BuildingName,
+            room.Floor,
+            room.Capacity,
+            room.OccupiedCount,
+            room.OccupancyPercent,
+            room.Description,
+            room.RoomStatus,
+            room.RoomTypeId,
+            room.RoomTypeName,
+            room.BasePrice,
+            room.Amenities);
     }
 }

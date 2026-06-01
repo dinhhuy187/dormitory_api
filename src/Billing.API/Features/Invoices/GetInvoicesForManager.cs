@@ -10,10 +10,15 @@ public static class GetInvoicesForManager
 {
     public sealed record ManagerInvoiceListItemResponse(
         Guid InvoiceId,
+        string InvoiceType,
+        Guid? BookingId,
         Guid RoomId,
         string? BuildingCode,
         int? Floor,
         Guid StudentId,
+        string? TermName,
+        DateTime? DueAt,
+        string? Description,
         short Month,
         int Year,
         decimal TotalAmount,
@@ -57,7 +62,7 @@ public static class GetInvoicesForManager
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetInvoicesForManager")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Lists invoices for staff review. Optional filters are buildingCode, floor, year, month, and status. buildingCode and floor are queried from Billing invoice snapshots, and this endpoint does not call RoomService. Status enum values are Unpaid, Paid, and Canceled. Pagination defaults are page=1 and pageSize=20.")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Lists invoices for staff review. Optional filters are buildingCode, floor, year, month, and status. buildingCode and floor are queried from Billing invoice snapshots, and this endpoint does not call RoomService. Response items include invoice type metadata, booking id when present, term name, due date, and description from Billing. Status enum values are Unpaid, Paid, and Canceled. Pagination defaults are page=1 and pageSize=20.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .Produces<IReadOnlyList<ManagerInvoiceListItemResponse>>(StatusCodes.Status200OK);
         }
@@ -109,10 +114,15 @@ public static class GetInvoicesForManager
                 .Take(pageSize)
                 .Select(invoice => new ManagerInvoiceListItemResponse(
                     invoice.Id,
+                    invoice.InvoiceType.ToString(),
+                    invoice.BookingId,
                     invoice.RoomId,
                     invoice.BuildingCode,
                     invoice.Floor,
                     invoice.StudentId,
+                    invoice.TermName,
+                    invoice.DueAt,
+                    invoice.Description,
                     invoice.BillingMonth,
                     invoice.BillingYear,
                     invoice.TotalAmount,

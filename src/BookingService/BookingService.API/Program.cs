@@ -6,6 +6,7 @@ using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Shared.Extensions;
 using Shared.Grpc.Profile;
+using Shared.Grpc.Rooms;
 
 Env.Load();
 
@@ -29,6 +30,12 @@ var profileGrpcAddress = builder.Configuration["Services:profile-api:grpc:0"] ??
 builder.Services.AddGrpcClient<ProfileReader.ProfileReaderClient>(options =>
 {
     options.Address = new Uri(profileGrpcAddress);
+});
+
+var roomGrpcAddress = builder.Configuration["Services:room-api:grpc:0"] ?? "http://room-api:8082";
+builder.Services.AddGrpcClient<RoomBillingReader.RoomBillingReaderClient>(options =>
+{
+    options.Address = new Uri(roomGrpcAddress);
 });
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

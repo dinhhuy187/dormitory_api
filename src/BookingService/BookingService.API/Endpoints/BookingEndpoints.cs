@@ -66,9 +66,9 @@ public static class BookingEndpoints
             return Results.Ok(new ApiResponse<RoomStudentsResponse>(result.Value!));
         })
         .WithName("GetRoomStudents")
-        .WithDescription("Required roles: Admin, Manager. Gets students assigned to one room. Booking fields come from BookingService; profile fields come from ProfileService through gRPC. Includes only Confirmed and Active bookings; excludes Pending, Canceled, and Completed. Citizen ID, address, ethnicity, religion, and emergency contact fields are intentionally not returned.")
-        .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager"))
-        .Produces<ApiResponse<RoomStudentsResponse>>(StatusCodes.Status200OK)
+        .WithDescription("Required authentication. Gets students assigned to one room and includes room detail equivalent to GET /api/rooms/{id}. Room fields come from RoomService through gRPC; booking fields come from BookingService; profile fields come from ProfileService through gRPC. Includes only Confirmed and Active bookings; excludes Pending, Canceled, and Completed. Citizen ID, address, ethnicity, religion, and emergency contact fields are intentionally not returned.")
+        .RequireAuthorization()
+        .Produces<RoomStudentsResponse>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status400BadRequest)
         .Produces(StatusCodes.Status401Unauthorized)
         .Produces(StatusCodes.Status403Forbidden)

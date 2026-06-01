@@ -1,5 +1,6 @@
 using Billing.API.Infrastructure.Auth;
 using Billing.API.Infrastructure.Database;
+using Billing.API.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
@@ -28,14 +29,14 @@ public static class GetMyInvoiceDetail
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetMyInvoiceDetail")
-                .WithDescription("Required role: Student. Gets full invoice detail for the authenticated student only. Status values are Unpaid, Paid, and Canceled. Response includes room location snapshot, old/new meter indices, tier snapshots, surcharges, totals, payment status, and contract template snapshot id.")
+                .WithDescription("Required role: Student. Gets full invoice detail for the authenticated student only. Status values are Unpaid, Paid, and Canceled. Response includes invoice type metadata, room location snapshot, current building bank account from RoomService when the room still exists, old/new meter indices, tier snapshots, surcharges, totals, payment status, and contract template snapshot id.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<InvoiceDetailResponse>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
         }
     }
 
-    public sealed class Handler(BillingDbContext dbContext)
+    public sealed class Handler(BillingDbContext dbContext, IRoomBillingClient roomBillingClient)
     {
         public async Task<InvoiceDetailResponse> ExecuteAsync(Guid invoiceId, Guid studentId, CancellationToken cancellationToken)
         {
@@ -47,7 +48,12 @@ public static class GetMyInvoiceDetail
                     cancellationToken)
                 ?? throw new ApiException("Invoice not found.", StatusCodes.Status404NotFound);
 
-            return InvoiceResponseMapper.ToDetail(invoice);
+            var room = await roomBillingClient.GetRoomBillingInfoAsync(invoice.RoomId, cancellationToken);
+            var buildingBankAccount = room is null
+                ? null
+                : new BuildingBankAccountResponse(room.BankCode, room.AccountNumber, room.AccountName);
+
+            return InvoiceResponseMapper.ToDetail(invoice, buildingBankAccount);
         }
     }
 }

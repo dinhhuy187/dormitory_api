@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAcademicTermRepository, AcademicTermRepository>();
         services.AddScoped<IRoomPricingService, RoomPricingService>();
+        services.AddScoped<IRoomDetailReader, RoomDetailReader>();
         services.AddScoped<IStudentProfileReader, StudentProfileReader>();
         services.AddScoped<IBookingRulesChecker, BookingRulesChecker>();
         services.AddScoped<IRegistrationPeriodChecker, RegistrationPeriodChecker>();

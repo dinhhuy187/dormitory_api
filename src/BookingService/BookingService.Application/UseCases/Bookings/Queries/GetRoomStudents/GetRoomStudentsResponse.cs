@@ -4,8 +4,25 @@ public sealed record GetRoomStudentsQuery(Guid RoomId);
 
 public sealed record RoomStudentsResponse(
     Guid RoomId,
+    RoomDetailResponse Room,
     int TotalStudents,
     IReadOnlyList<RoomStudentResponse> Students);
+
+public sealed record RoomDetailResponse(
+    Guid Id,
+    string Name,
+    Guid BuildingId,
+    string BuildingName,
+    int Floor,
+    int Capacity,
+    int OccupiedCount,
+    decimal OccupancyPercent,
+    string Description,
+    string RoomStatus,
+    Guid RoomTypeId,
+    string RoomTypeName,
+    decimal BasePrice,
+    IReadOnlyList<string> Amenities);
 
 public sealed record RoomStudentResponse(
     Guid StudentId,

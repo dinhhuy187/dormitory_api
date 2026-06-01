@@ -40,7 +40,10 @@ public sealed class RoomBillingClient(RoomBillingReader.RoomBillingReaderClient 
                 response.OccupiedCount,
                 response.Status,
                 response.BuildingCode.Trim(),
-                response.Floor);
+                response.Floor,
+                Normalize(response.BankCode),
+                Normalize(response.AccountNumber),
+                Normalize(response.AccountName));
         }
         catch (RpcException ex) when (ex.StatusCode == StatusCode.InvalidArgument)
         {
@@ -54,5 +57,10 @@ public sealed class RoomBillingClient(RoomBillingReader.RoomBillingReaderClient 
         {
             throw new ApiException("RoomService request failed.", StatusCodes.Status502BadGateway);
         }
+    }
+
+    private static string? Normalize(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }
