@@ -100,7 +100,7 @@ public sealed class CreateBookingInvoiceCommandConsumer(
         return context.Publish(new BookingInvoiceCreatedEvent(
             invoice.BookingId!.Value,
             invoice.Id,
-            invoice.StudentId,
+            invoice.StudentId!.Value,
             invoice.RoomId,
             invoice.TotalAmount,
             invoice.DueAt ?? context.Message.PaymentDueAt,

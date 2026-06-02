@@ -27,7 +27,10 @@ public static class SeedData
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var bookings = await GetBookingsFromBookingServiceAsync(httpClientFactory, logger, cancellationToken);
-        await SeedInvoicesAndSurchargesAsync(dbContext, bookings, roomBillingClient, logger, cancellationToken);
+        await SeedBookingRegistrationInvoicesAsync(dbContext, bookings, roomBillingClient, logger, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        await SeedMonthlyUtilityInvoicesAndSurchargesAsync(dbContext, bookings, roomBillingClient, logger, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -366,7 +369,7 @@ public static class SeedData
         ILogger logger,
         CancellationToken cancellationToken)
     {
-        const int maxAttempts = 8;
+        const int maxAttempts = 60;
         var client = httpClientFactory.CreateClient("BookingServiceClient");
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
@@ -407,20 +410,131 @@ public static class SeedData
         return [];
     }
 
-    private static async Task SeedInvoicesAndSurchargesAsync(
+    private static async Task SeedBookingRegistrationInvoicesAsync(
         BillingDbContext dbContext,
         IReadOnlyList<BookingBillingSyncDto> bookings,
         IRoomBillingClient roomBillingClient,
         ILogger logger,
         CancellationToken cancellationToken)
     {
-        var eligibleBookings = bookings
-            .Where(booking => string.Equals(booking.Status, "Confirmed", StringComparison.OrdinalIgnoreCase) ||
-                              string.Equals(booking.Status, "Active", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(booking => booking.StartDate)
-            .ThenBy(booking => booking.RoomId)
-            .ThenBy(booking => booking.StudentId)
+        var eligibleBookings = GetEligibleBookings(bookings);
+        if (eligibleBookings.Count == 0)
+        {
+            logger.LogInformation("No confirmed or active bookings were available for Billing booking-registration invoice seed.");
+            return;
+        }
+
+        var bookingIds = eligibleBookings
+            .Select(booking => booking.BookingId)
             .ToList();
+
+        var existingBookingInvoiceIds = await dbContext.Invoices
+            .AsNoTracking()
+            .Where(invoice => invoice.InvoiceType == InvoiceType.BookingRegistration &&
+                              invoice.BookingId.HasValue &&
+                              bookingIds.Contains(invoice.BookingId.Value))
+            .Select(invoice => invoice.BookingId!.Value)
+            .ToListAsync(cancellationToken);
+
+        var existingBookingInvoiceIdSet = existingBookingInvoiceIds.ToHashSet();
+        var roomCache = new Dictionary<Guid, RoomBillingInfo?>();
+        var createdCount = 0;
+        var skippedCount = 0;
+
+        foreach (var booking in eligibleBookings)
+        {
+            if (existingBookingInvoiceIdSet.Contains(booking.BookingId))
+            {
+                skippedCount++;
+                continue;
+            }
+
+            if (!roomCache.TryGetValue(booking.RoomId, out var room))
+            {
+                room = await GetRoomBillingInfoForSeedAsync(roomBillingClient, booking.RoomId, logger, cancellationToken);
+                roomCache[booking.RoomId] = room;
+            }
+
+            if (room is null)
+            {
+                skippedCount++;
+                logger.LogWarning("Skipped booking invoice for booking {BookingId}; room detail unavailable.", booking.BookingId);
+                continue;
+            }
+
+            var surchargeLines = BuildBookingRegistrationSurchargeLines(booking).ToList();
+            var surchargeTotal = surchargeLines.Sum(line => line.Amount);
+            if (surchargeTotal != booking.TotalPrice)
+            {
+                skippedCount++;
+                logger.LogWarning(
+                    "Skipped booking invoice for booking {BookingId}; surcharge total {SurchargeTotal} does not match booking total {BookingTotal}.",
+                    booking.BookingId,
+                    surchargeTotal,
+                    booking.TotalPrice);
+                continue;
+            }
+
+            var createdAt = EnsureUtc(booking.CreatedAt);
+            var paidAt = EnsureUtc(createdAt.AddHours(24));
+            var invoice = new Invoice
+            {
+                InvoiceType = InvoiceType.BookingRegistration,
+                BookingId = booking.BookingId,
+                RoomId = booking.RoomId,
+                BuildingCode = room.BuildingCode.Trim(),
+                Floor = room.Floor,
+                StudentId = booking.StudentId,
+                TermName = booking.TermName,
+                DueAt = EnsureUtc(booking.PaymentDueAt),
+                Description = $"Booking registration invoice for {booking.TermName}",
+                BillingMonth = (short)createdAt.Month,
+                BillingYear = createdAt.Year,
+                ElectricityOldIndex = 0,
+                ElectricityNewIndex = 0,
+                ElectricityUsage = 0,
+                ElectricityAmount = 0m,
+                WaterOldIndex = 0,
+                WaterNewIndex = 0,
+                WaterUsage = 0,
+                WaterAmount = 0m,
+                SurchargeTotal = surchargeTotal,
+                TotalAmount = booking.TotalPrice,
+                Status = InvoiceStatus.Paid,
+                PaidAt = paidAt,
+                CreatedAt = createdAt,
+                UpdatedAt = paidAt
+            };
+
+            foreach (var line in surchargeLines)
+            {
+                invoice.Surcharges.Add(new Surcharge
+                {
+                    Name = line.Name,
+                    Amount = line.Amount,
+                    CreatedAt = createdAt
+                });
+            }
+
+            dbContext.Invoices.Add(invoice);
+            existingBookingInvoiceIdSet.Add(booking.BookingId);
+            createdCount++;
+        }
+
+        logger.LogInformation(
+            "Billing booking-registration invoice seed completed. Created {CreatedCount} invoices and skipped {SkippedCount} bookings.",
+            createdCount,
+            skippedCount);
+    }
+
+    private static async Task SeedMonthlyUtilityInvoicesAndSurchargesAsync(
+        BillingDbContext dbContext,
+        IReadOnlyList<BookingBillingSyncDto> bookings,
+        IRoomBillingClient roomBillingClient,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        var eligibleBookings = GetEligibleBookings(bookings);
 
         if (eligibleBookings.Count == 0)
         {
@@ -671,6 +785,40 @@ public static class SeedData
         }
     }
 
+    private static List<BookingBillingSyncDto> GetEligibleBookings(IReadOnlyList<BookingBillingSyncDto> bookings)
+    {
+        return bookings
+            .Where(booking => string.Equals(booking.Status, "Confirmed", StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(booking.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(booking => booking.StartDate)
+            .ThenBy(booking => booking.RoomId)
+            .ThenBy(booking => booking.StudentId)
+            .ToList();
+    }
+
+    private static IEnumerable<(string Name, decimal Amount)> BuildBookingRegistrationSurchargeLines(BookingBillingSyncDto booking)
+    {
+        if (booking.BasePrice > 0)
+        {
+            yield return ($"Room fee {booking.TermName}".Trim(), booking.BasePrice);
+        }
+
+        foreach (var fee in (booking.Fees ?? []).Where(fee => fee.Amount > 0))
+        {
+            yield return (fee.FeeName.Trim(), fee.Amount);
+        }
+    }
+
+    private static DateTime EnsureUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+    }
+
     private static IReadOnlyList<(int Year, short Month)> GetCandidateMonths(
         BookingBillingSyncDto booking,
         DateOnly currentMonth)
@@ -770,8 +918,17 @@ public static class SeedData
         DateTime EndDate,
         int NumberOfMonths,
         decimal PricePerMonth,
+        decimal BasePrice,
+        decimal TotalPrice,
+        DateTime PaymentDueAt,
         string Status,
-        DateTime CreatedAt);
+        DateTime CreatedAt,
+        IReadOnlyList<BookingBillingSyncFeeDto> Fees);
+
+    private sealed record BookingBillingSyncFeeDto(
+        string FeeName,
+        decimal Amount,
+        bool IsRefundable);
 
     private sealed record SeedInvoiceCandidate(BookingBillingSyncDto Booking, int Year, short Month);
 

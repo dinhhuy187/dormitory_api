@@ -51,6 +51,30 @@ public class Booking : Entity, IAggregateRoot
         RecalculateTotalPrice();
     }
 
+    public static Booking SeedActive(
+        Guid roomId,
+        Guid userId,
+        AcademicTerm term,
+        decimal pricePerMonth,
+        DateTime createdAt,
+        IReadOnlyList<SeedBookingFee> fees)
+    {
+        var utcCreatedAt = DateTime.SpecifyKind(createdAt, DateTimeKind.Utc);
+        var booking = new Booking(Guid.NewGuid(), roomId, userId, term, pricePerMonth);
+
+        foreach (var fee in fees.Where(fee => fee.Amount > 0))
+        {
+            booking._fees.Add(new BookingFee(fee.FeeName.Trim(), fee.Amount, fee.IsRefundable));
+        }
+
+        booking.Status = BookingStatus.Active;
+        booking.CreatedAt = utcCreatedAt;
+        booking.PaymentDueAt = utcCreatedAt.AddHours(48);
+        booking.UpdatedAt = utcCreatedAt;
+        booking.TotalPrice = booking.BasePrice + booking._fees.Sum(fee => fee.Amount);
+        return booking;
+    }
+
     public static async Task<Booking> CreateAsync(
         Guid roomId, 
         Guid userId, 
@@ -186,3 +210,5 @@ public class Booking : Entity, IAggregateRoot
         AddDomainEvent(new StudentCheckedOutDomainEvent(Id, RoomId));
     }
 }
+
+public sealed record SeedBookingFee(string FeeName, decimal Amount, bool IsRefundable);

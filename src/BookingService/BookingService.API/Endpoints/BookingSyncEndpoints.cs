@@ -28,8 +28,17 @@ public static class BookingSyncEndpoints
                         booking.Term.EndDate,
                         booking.Term.NumberOfMonths,
                         booking.PricePerMonth,
+                        booking.BasePrice,
+                        booking.TotalPrice,
+                        booking.PaymentDueAt,
                         booking.Status.ToString(),
-                        booking.CreatedAt))
+                        booking.CreatedAt,
+                        booking.Fees
+                            .Select(fee => new BookingBillingSyncFeeDto(
+                                fee.FeeName,
+                                fee.Amount,
+                                fee.IsRefundable))
+                            .ToList()))
                     .ToListAsync(ct);
 
                 return Results.Ok(bookings);
@@ -50,5 +59,14 @@ public sealed record BookingBillingSyncDto(
     DateTime EndDate,
     int NumberOfMonths,
     decimal PricePerMonth,
+    decimal BasePrice,
+    decimal TotalPrice,
+    DateTime PaymentDueAt,
     string Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    IReadOnlyList<BookingBillingSyncFeeDto> Fees);
+
+public sealed record BookingBillingSyncFeeDto(
+    string FeeName,
+    decimal Amount,
+    bool IsRefundable);
