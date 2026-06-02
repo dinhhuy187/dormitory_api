@@ -30,6 +30,21 @@ public class BookingRepository(BookingDbContext dbContext) : IBookingRepository
             .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
     }
 
+    public async Task<Booking?> GetCurrentRoomBookingByUserIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.Bookings
+            .AsNoTracking()
+            .Where(booking => booking.UserId == userId &&
+                (booking.Status == BookingStatus.Active ||
+                 booking.Status == BookingStatus.Confirmed))
+            .OrderBy(booking => booking.Status == BookingStatus.Active ? 0 : 1)
+            .ThenByDescending(booking => booking.Term.StartDate)
+            .ThenByDescending(booking => booking.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Booking>> GetRoomOccupantBookingsAsync(
         Guid roomId,
         CancellationToken cancellationToken)

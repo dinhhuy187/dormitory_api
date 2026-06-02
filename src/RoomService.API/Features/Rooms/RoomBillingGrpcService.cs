@@ -1,3 +1,4 @@
+using System.Globalization;
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 using RoomService.API.Infrastructure.Database;
@@ -26,9 +27,16 @@ public sealed class RoomBillingGrpcService(RoomDbContext dbContext) : RoomBillin
                 r.RoomTypeId,
                 RoomTypeName = r.RoomType!.Name,
                 r.RoomType.Capacity,
+                r.RoomType.BasePrice,
+                r.RoomType.Amenities,
                 r.OccupiedCount,
                 Status = r.RoomStatus.ToString(),
+                BuildingId = r.Building!.Id,
                 BuildingCode = r.Building!.Code,
+                BuildingName = r.Building!.Name,
+                r.Building.BankCode,
+                r.Building.AccountNumber,
+                r.Building.AccountName,
                 r.Floor
             })
             .FirstOrDefaultAsync(context.CancellationToken);
@@ -42,7 +50,7 @@ public sealed class RoomBillingGrpcService(RoomDbContext dbContext) : RoomBillin
             };
         }
 
-        return new GetRoomBillingInfoResponse
+        var response = new GetRoomBillingInfoResponse
         {
             RoomId = room.Id.ToString(),
             RoomExists = true,
@@ -52,8 +60,17 @@ public sealed class RoomBillingGrpcService(RoomDbContext dbContext) : RoomBillin
             Capacity = room.Capacity,
             OccupiedCount = room.OccupiedCount,
             Status = room.Status,
+            BuildingId = room.BuildingId.ToString(),
             BuildingCode = room.BuildingCode,
-            Floor = room.Floor
+            BuildingName = room.BuildingName,
+            Floor = room.Floor,
+            BankCode = room.BankCode ?? string.Empty,
+            AccountNumber = room.AccountNumber ?? string.Empty,
+            AccountName = room.AccountName ?? string.Empty,
+            BasePrice = room.BasePrice.ToString(CultureInfo.InvariantCulture)
         };
+
+        response.Amenities.AddRange(room.Amenities);
+        return response;
     }
 }

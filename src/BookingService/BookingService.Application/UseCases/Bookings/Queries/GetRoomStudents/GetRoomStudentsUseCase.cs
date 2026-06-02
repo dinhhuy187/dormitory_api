@@ -14,23 +14,30 @@ public sealed class GetRoomStudentsUseCase(
         GetRoomStudentsQuery query,
         CancellationToken cancellationToken)
     {
-        if (query.RoomId == Guid.Empty)
+        if (query.UserId == Guid.Empty)
         {
-            return Result<RoomStudentsResponse>.Failure("RoomId is required.");
+            return Result<RoomStudentsResponse>.Failure("UserId is required.");
         }
 
-        var room = await roomDetailReader.GetRoomDetailAsync(query.RoomId, cancellationToken);
+        var currentBooking = await bookingRepository.GetCurrentRoomBookingByUserIdAsync(query.UserId, cancellationToken);
+        if (currentBooking is null)
+        {
+            return Result<RoomStudentsResponse>.Failure("No active or confirmed booking found for current user.");
+        }
+
+        var roomId = currentBooking.RoomId;
+        var room = await roomDetailReader.GetRoomDetailAsync(roomId, cancellationToken);
         if (room is null)
         {
             return Result<RoomStudentsResponse>.Failure("Room not found.");
         }
 
         var roomResponse = MapRoom(room);
-        var bookings = await bookingRepository.GetRoomOccupantBookingsAsync(query.RoomId, cancellationToken);
+        var bookings = await bookingRepository.GetRoomOccupantBookingsAsync(roomId, cancellationToken);
         if (bookings.Count == 0)
         {
             return Result<RoomStudentsResponse>.Success(new RoomStudentsResponse(
-                query.RoomId,
+                roomId,
                 roomResponse,
                 0,
                 []));
@@ -70,7 +77,7 @@ public sealed class GetRoomStudentsUseCase(
             .ToList();
 
         return Result<RoomStudentsResponse>.Success(new RoomStudentsResponse(
-            query.RoomId,
+            roomId,
             roomResponse,
             students.Count,
             students));

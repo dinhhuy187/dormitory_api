@@ -51,12 +51,20 @@ public static class BookingEndpoints
         .Produces<List<BookingItemResponse>>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status403Forbidden);
 
-        group.MapGet("/rooms/{roomId:guid}/students", async (
-            Guid roomId,
+        group.MapGet("/rooms/students", async (
+            HttpContext httpContext,
             [FromServices] IGetRoomStudentsUseCase useCase,
             CancellationToken ct) =>
         {
-            var result = await useCase.ExecuteAsync(new GetRoomStudentsQuery(roomId), ct);
+            var currentUserId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                               ?? httpContext.User.FindFirstValue("sub");
+
+            if (string.IsNullOrWhiteSpace(currentUserId) || !Guid.TryParse(currentUserId, out var currentUserGuid))
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await useCase.ExecuteAsync(new GetRoomStudentsQuery(currentUserGuid), ct);
 
             if (!result.IsSuccess)
             {
@@ -66,7 +74,7 @@ public static class BookingEndpoints
             return Results.Ok(new ApiResponse<RoomStudentsResponse>(result.Value!));
         })
         .WithName("GetRoomStudents")
-        .WithDescription("Required authentication. Gets students assigned to one room and includes room detail equivalent to GET /api/rooms/{id}. Room fields come from RoomService through gRPC; booking fields come from BookingService; profile fields come from ProfileService through gRPC. Includes only Confirmed and Active bookings; excludes Pending, Canceled, and Completed. Citizen ID, address, ethnicity, religion, and emergency contact fields are intentionally not returned.")
+        .WithDescription("Required authentication. Gets the authenticated user's current room from their Active or Confirmed booking, then returns students assigned to that room and room detail equivalent to GET /api/rooms/{id}. Room fields come from RoomService through gRPC; booking fields come from BookingService; profile fields come from ProfileService through gRPC. Includes only Confirmed and Active bookings; excludes Pending, Canceled, and Completed. Citizen ID, address, ethnicity, religion, and emergency contact fields are intentionally not returned.")
         .RequireAuthorization()
         .Produces<RoomStudentsResponse>(StatusCodes.Status200OK)
         .Produces(StatusCodes.Status400BadRequest)
