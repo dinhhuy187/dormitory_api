@@ -65,6 +65,7 @@ public class CreateBookingUseCase(
                 }
             }
 
+            booking.MarkCreatedForPayment();
             bookingRepository.Add(booking);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -73,6 +74,8 @@ public class CreateBookingUseCase(
                 BookingId: booking.Id,
                 Status: booking.Status.ToString(),
                 TotalPrice: booking.TotalPrice,
+                PaymentDueAt: booking.PaymentDueAt,
+                PaymentExpiresInHours: 48,
                 Message: "Tạo đơn đặt phòng thành công. Vui lòng thanh toán trong vòng 48h."
             );
             return Result<CreateBookingResponse>.Success(response);

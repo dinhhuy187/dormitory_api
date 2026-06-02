@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Grpc.Rooms";
+
+package dormitory.rooms.v1;
+
+service RoomBillingReader {
+  rpc GetRoomBillingInfo (GetRoomBillingInfoRequest) returns (GetRoomBillingInfoResponse);
+}
+
+message GetRoomBillingInfoRequest {
+  string room_id = 1;
+}
+
+message GetRoomBillingInfoResponse {
+  string room_id = 1;
+  bool room_exists = 2;
+  string room_number = 3;
+  string room_type_id = 4;
+  string room_type_name = 5;
+  int32 capacity = 6;
+  int32 occupied_count = 7;
+  string status = 8;
+  string building_code = 9;
+  int32 floor = 10;
+  string bank_code = 11;
+  string account_number = 12;
+  string account_name = 13;
+  string building_id = 14;
+  string building_name = 15;
+  string base_price = 16;
+  repeated string amenities = 17;
+}

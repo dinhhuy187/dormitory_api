@@ -24,20 +24,6 @@ services:
         read_only: false
     networks:
       - "aspire"
-  identity-api:
-    image: "${IDENTITY_API_IMAGE}"
-    environment:
-      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
-      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
-      HTTP_PORTS: "${IDENTITY_API_PORT}"
-      ConnectionStrings__identitydb: "${IDENTITYDB}"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
-      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
-      OTEL_SERVICE_NAME: "identity-api"
-    expose:
-      - "${IDENTITY_API_PORT}"
-    networks:
-      - "aspire"
   profile-api:
     image: "${PROFILE_API_IMAGE}"
     environment:
@@ -45,11 +31,38 @@ services:
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "${PROFILE_API_PORT}"
       ConnectionStrings__profiledb: "${PROFILEDB}"
+      PROFILE_GRPC_PORT: "8081"
+      IDENTITY_API_HTTP: "http://identity-api:${IDENTITY_API_PORT}"
+      services__identity-api__http__0: "http://identity-api:${IDENTITY_API_PORT}"
+      IDENTITY_API_HTTPS: "https://identity-api:${IDENTITY_API_PORT}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "profile-api"
     expose:
       - "${PROFILE_API_PORT}"
+      - "8081"
+    networks:
+      - "aspire"
+  identity-api:
+    image: "${IDENTITY_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${IDENTITY_API_PORT}"
+      ConnectionStrings__identitydb: "${IDENTITYDB}"
+      PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
+      services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_GRPC: "http://profile-api:8081"
+      services__profile-api__grpc__0: "http://profile-api:8081"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "identity-api"
+    expose:
+      - "${IDENTITY_API_PORT}"
+    depends_on:
+      profile-api:
+        condition: "service_started"
     networks:
       - "aspire"
   room-api:
@@ -59,11 +72,19 @@ services:
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "${ROOM_API_PORT}"
       ConnectionStrings__roomdb: "${ROOMDB}"
+      ConnectionStrings__rabbitmq: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: "guest"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      RABBITMQ_URI: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      ROOM_GRPC_PORT: "8082"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "room-api"
     expose:
       - "${ROOM_API_PORT}"
+      - "8082"
     networks:
       - "aspire"
   booking-api:
@@ -76,6 +97,16 @@ services:
       ROOM_API_HTTP: "http://room-api:${ROOM_API_PORT}"
       services__room-api__http__0: "http://room-api:${ROOM_API_PORT}"
       ROOM_API_HTTPS: "https://room-api:${ROOM_API_PORT}"
+      ROOM_API_GRPC: "http://room-api:8082"
+      services__room-api__grpc__0: "http://room-api:8082"
+      PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
+      services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_GRPC: "http://profile-api:8081"
+      services__profile-api__grpc__0: "http://profile-api:8081"
+      IDENTITY_API_HTTP: "http://identity-api:${IDENTITY_API_PORT}"
+      services__identity-api__http__0: "http://identity-api:${IDENTITY_API_PORT}"
+      IDENTITY_API_HTTPS: "https://identity-api:${IDENTITY_API_PORT}"
       ConnectionStrings__rabbitmq: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
       RABBITMQ_HOST: "rabbitmq"
       RABBITMQ_PORT: "5672"
@@ -90,6 +121,10 @@ services:
     depends_on:
       room-api:
         condition: "service_started"
+      profile-api:
+        condition: "service_started"
+      identity-api:
+        condition: "service_started"
     networks:
       - "aspire"
   community-api:
@@ -102,6 +137,8 @@ services:
       PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
       services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
       PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_GRPC: "http://profile-api:8081"
+      services__profile-api__grpc__0: "http://profile-api:8081"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "community-api"
@@ -129,6 +166,46 @@ services:
       - "${INCIDENT_API_PORT}"
     networks:
       - "aspire"
+  billing-api:
+    image: "${BILLING_API_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${BILLING_API_PORT}"
+      ConnectionStrings__billingdb: "${BILLINGDB}"
+      ROOM_API_HTTP: "http://room-api:${ROOM_API_PORT}"
+      services__room-api__http__0: "http://room-api:${ROOM_API_PORT}"
+      ROOM_API_HTTPS: "https://room-api:${ROOM_API_PORT}"
+      ROOM_API_GRPC: "http://room-api:8082"
+      services__room-api__grpc__0: "http://room-api:8082"
+      BOOKING_API_HTTP: "http://booking-api:${BOOKING_API_PORT}"
+      services__booking-api__http__0: "http://booking-api:${BOOKING_API_PORT}"
+      BOOKING_API_HTTPS: "https://booking-api:${BOOKING_API_PORT}"
+      PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
+      services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_GRPC: "http://profile-api:8081"
+      services__profile-api__grpc__0: "http://profile-api:8081"
+      ConnectionStrings__rabbitmq: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: "guest"
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD}"
+      RABBITMQ_URI: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "billing-api"
+    expose:
+      - "${BILLING_API_PORT}"
+    depends_on:
+      room-api:
+        condition: "service_started"
+      booking-api:
+        condition: "service_started"
+      profile-api:
+        condition: "service_started"
+    networks:
+      - "aspire"
   chat-api:
     image: "${CHAT_API_IMAGE}"
     environment:
@@ -139,6 +216,8 @@ services:
       PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
       services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
       PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_GRPC: "http://profile-api:8081"
+      services__profile-api__grpc__0: "http://profile-api:8081"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "chat-api"
@@ -158,9 +237,13 @@ services:
       ROOM_API_HTTP: "http://room-api:${ROOM_API_PORT}"
       services__room-api__http__0: "http://room-api:${ROOM_API_PORT}"
       ROOM_API_HTTPS: "https://room-api:${ROOM_API_PORT}"
+      ROOM_API_GRPC: "http://room-api:8082"
+      services__room-api__grpc__0: "http://room-api:8082"
       PROFILE_API_HTTP: "http://profile-api:${PROFILE_API_PORT}"
       services__profile-api__http__0: "http://profile-api:${PROFILE_API_PORT}"
       PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
+      PROFILE_API_GRPC: "http://profile-api:8081"
+      services__profile-api__grpc__0: "http://profile-api:8081"
       BOOKING_API_HTTP: "http://booking-api:${BOOKING_API_PORT}"
       services__booking-api__http__0: "http://booking-api:${BOOKING_API_PORT}"
       BOOKING_API_HTTPS: "https://booking-api:${BOOKING_API_PORT}"
@@ -170,6 +253,9 @@ services:
       INCIDENT_API_HTTP: "http://incident-api:${INCIDENT_API_PORT}"
       services__incident-api__http__0: "http://incident-api:${INCIDENT_API_PORT}"
       INCIDENT_API_HTTPS: "https://incident-api:${INCIDENT_API_PORT}"
+      BILLING_API_HTTP: "http://billing-api:${BILLING_API_PORT}"
+      services__billing-api__http__0: "http://billing-api:${BILLING_API_PORT}"
+      BILLING_API_HTTPS: "https://billing-api:${BILLING_API_PORT}"
       CHAT_API_HTTP: "http://chat-api:${CHAT_API_PORT}"
       services__chat-api__http__0: "http://chat-api:${CHAT_API_PORT}"
       CHAT_API_HTTPS: "https://chat-api:${CHAT_API_PORT}"

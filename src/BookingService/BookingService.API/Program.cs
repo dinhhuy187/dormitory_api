@@ -5,6 +5,8 @@ using BookingService.Infrastructure.Data;
 using DotNetEnv;
 using Microsoft.EntityFrameworkCore;
 using Shared.Extensions;
+using Shared.Grpc.Profile;
+using Shared.Grpc.Rooms;
 
 Env.Load();
 
@@ -19,19 +21,33 @@ builder.AddNpgsqlDbContext<BookingDbContext>("bookingdb");
 
 builder.AddServiceDefaults();
 
-// Add services to the container.
-
 builder.Services.AddApplicationLayer();
 builder.Services.AddInfrastructureLayer(builder.Configuration);
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+builder.Services.AddGrpcClient<ProfileReader.ProfileReaderClient>(options =>
+{
+    options.Address = new Uri("http://_grpc.profile-api");
+});
+
+builder.Services.AddGrpcClient<RoomBillingReader.RoomBillingReaderClient>(options =>
+{
+    options.Address = new Uri("http://_grpc.room-api");
+});
+
 builder.Services.AddOpenApi(options =>
 {
-    options.CreateSchemaReferenceId = (type) => type.Type.FullName ?? type.Type.Name;
+    options.CreateSchemaReferenceId = type => type.Type.FullName ?? type.Type.Name;
 });
 
 builder.Services.AddHttpClient("RoomServiceClient", client =>
 {
-    client.BaseAddress = new Uri("http://room-api"); 
+    client.BaseAddress = new Uri("http://room-api");
+})
+.AddStandardResilienceHandler();
+
+builder.Services.AddHttpClient("IdentityServiceClient", client =>
+{
+    client.BaseAddress = new Uri("http://identity-api");
 })
 .AddStandardResilienceHandler();
 
@@ -41,24 +57,31 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
-
 app.MapOpenApi("api/bookings/openapi/v1.json");
 
-using var scope = app.Services.CreateScope();
-var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
-dbContext.Database.Migrate();
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+    dbContext.Database.Migrate();
+}
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapBookingSyncEndpoints();
+app.MapFeeTemplateEndpoints();
+app.MapBookingEndpoints();
+
+await app.StartAsync();
+
 try
 {
-    await SeedData.SeedAsync(scope.ServiceProvider);
+    await SeedData.SeedAsync(app.Services);
 }
 catch (Exception ex)
 {
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Có lỗi xảy ra trong quá trình Migrate và Seed dữ liệu.");
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogError(ex, "An error occurred while seeding BookingService data.");
 }
 
-app.UseAuthorization();
-
-app.MapFeeTemplateEndpoints();
-app.MapBookingEndpoints();
-app.Run();
+await app.WaitForShutdownAsync();

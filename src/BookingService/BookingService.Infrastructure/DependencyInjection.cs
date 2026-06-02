@@ -3,7 +3,9 @@ using BookingService.Application.Abtractions.Services;
 using BookingService.Domain.Repositories;
 using BookingService.Domain.Services;
 using BookingService.Infrastructure.Data;
+using BookingService.Infrastructure.EventHandlers.Integration;
 using BookingService.Infrastructure.EventHandlers.Internal;
+using BookingService.Infrastructure.HostedServices;
 using BookingService.Infrastructure.Repositories;
 using BookingService.Infrastructure.Sagas;
 using BookingService.Infrastructure.Services;
@@ -31,6 +33,9 @@ public static class DependencyInjection
             // x.AddConsumer<RoomPriceupdatedEventHandler>();
             x.AddConsumer<CancelBookingCommandConsumer>();
             x.AddConsumer<ConfirmBookingCommandConsumer>();
+            x.AddConsumer<StudentCheckedOutDomainEventConsumer>();
+            x.AddConsumer<RoomCapacityReservedProjectionConsumer>();
+            x.AddConsumer<RoomCapacityReleasedProjectionConsumer>();
 
             x.AddSagaStateMachine<BookingStateMachine, BookingSagaState>()
                 .EntityFrameworkRepository(r =>
@@ -38,6 +43,11 @@ public static class DependencyInjection
                     r.ExistingDbContext<BookingDbContext>();
                     r.UsePostgres();
                 });
+
+            x.AddConfigureEndpointsCallback((context, name, cfg) =>
+            {
+                cfg.UseEntityFrameworkOutbox<BookingDbContext>(context);
+            });
 
             x.UsingRabbitMq((context, cfg) =>
             {
@@ -51,9 +61,12 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAcademicTermRepository, AcademicTermRepository>();
         services.AddScoped<IRoomPricingService, RoomPricingService>();
+        services.AddScoped<IRoomDetailReader, RoomDetailReader>();
+        services.AddScoped<IStudentProfileReader, StudentProfileReader>();
         services.AddScoped<IBookingRulesChecker, BookingRulesChecker>();
         services.AddScoped<IRegistrationPeriodChecker, RegistrationPeriodChecker>();
         services.AddScoped<IFeeTemplateRepository, FeeTemplateRepository>();    
+        services.AddHostedService<PendingBookingExpirationWorker>();
         // Nhớ đăng ký thêm các service khác ở đây
         // services.AddScoped<IAcademicTermRepository, AcademicTermRepository>();
         // services.AddScoped<IRoomPricingService, RoomPricingService>();

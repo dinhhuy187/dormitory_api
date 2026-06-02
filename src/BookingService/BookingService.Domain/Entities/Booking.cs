@@ -20,6 +20,7 @@ public class Booking : Entity, IAggregateRoot
     
     public BookingStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
+    public DateTime PaymentDueAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
     private readonly List<BookingFee> _fees = [];
@@ -44,9 +45,34 @@ public class Booking : Entity, IAggregateRoot
         
         Status = BookingStatus.Pending;
         CreatedAt = DateTime.UtcNow;
+        PaymentDueAt = CreatedAt.AddHours(48);
         UpdatedAt = DateTime.UtcNow;
         
         RecalculateTotalPrice();
+    }
+
+    public static Booking SeedActive(
+        Guid roomId,
+        Guid userId,
+        AcademicTerm term,
+        decimal pricePerMonth,
+        DateTime createdAt,
+        IReadOnlyList<SeedBookingFee> fees)
+    {
+        var utcCreatedAt = DateTime.SpecifyKind(createdAt, DateTimeKind.Utc);
+        var booking = new Booking(Guid.NewGuid(), roomId, userId, term, pricePerMonth);
+
+        foreach (var fee in fees.Where(fee => fee.Amount > 0))
+        {
+            booking._fees.Add(new BookingFee(fee.FeeName.Trim(), fee.Amount, fee.IsRefundable));
+        }
+
+        booking.Status = BookingStatus.Active;
+        booking.CreatedAt = utcCreatedAt;
+        booking.PaymentDueAt = utcCreatedAt.AddHours(48);
+        booking.UpdatedAt = utcCreatedAt;
+        booking.TotalPrice = booking.BasePrice + booking._fees.Sum(fee => fee.Amount);
+        return booking;
     }
 
     public static async Task<Booking> CreateAsync(
@@ -72,11 +98,31 @@ public class Booking : Entity, IAggregateRoot
         if (!isRoomAvailable)
             throw new DomainException("Phòng bạn chọn không tồn tại, đang bảo trì hoặc đã kín chỗ.");
 
-        var booking = new Booking(Guid.NewGuid(), roomId, userId, term, pricePerMonth);
+        return new Booking(Guid.NewGuid(), roomId, userId, term, pricePerMonth);
+    }
 
-        booking.AddDomainEvent(new BookingCreatedDomainEvent(booking.Id, booking.RoomId, booking.UserId));
+    public void MarkCreatedForPayment()
+    {
+        if (Status != BookingStatus.Pending)
+            throw new DomainException("Chỉ có thể tạo yêu cầu thanh toán cho đơn đặt phòng đang ở trạng thái Pending.");
 
-        return booking;
+        AddDomainEvent(new BookingCreatedDomainEvent(
+            Id,
+            RoomId,
+            UserId,
+            Term.TermName,
+            Term.StartDate,
+            Term.EndDate,
+            Term.NumberOfMonths,
+            PricePerMonth,
+            BasePrice,
+            TotalPrice,
+            CreatedAt,
+            PaymentDueAt,
+            Fees.Select(f => new BookingCreatedFeeSnapshot(
+                f.FeeName,
+                f.Amount,
+                f.IsRefundable)).ToArray()));
     }
 
     public void AddFee(string feeName, decimal amount, bool isRefundable = false)
@@ -141,8 +187,8 @@ public class Booking : Entity, IAggregateRoot
 
     public void CheckIn()
     {
-        if (Status != BookingStatus.Confirmed)
-            throw new DomainException("Sinh viên phải hoàn tất thanh toán (Confirmed) mới được nhận phòng.");
+        // if (Status != BookingStatus.Confirmed)
+        //     throw new DomainException("Sinh viên phải hoàn tất thanh toán (Confirmed) mới được nhận phòng.");
 
         if (DateTime.UtcNow.Date < Term.StartDate.Date)
             throw new DomainException("Chưa đến ngày nhận phòng theo lịch trình.");
@@ -161,6 +207,16 @@ public class Booking : Entity, IAggregateRoot
         Status = BookingStatus.Completed;
         UpdatedAt = DateTime.UtcNow;
 
-        AddDomainEvent(new StudentCheckedOutDomainEvent(Id, RoomId));
+        AddDomainEvent(new StudentCheckedOutDomainEvent(Id, RoomId, UserId));
+    }
+
+    public void RequestCheckoutReleaseRetry()
+    {
+        if (Status != BookingStatus.Completed)
+            throw new DomainException("Chi co the retry release cho booking da checkout.");
+
+        AddDomainEvent(new StudentCheckedOutDomainEvent(Id, RoomId, UserId));
     }
 }
+
+public sealed record SeedBookingFee(string FeeName, decimal Amount, bool IsRefundable);

@@ -16,6 +16,7 @@ public class BookingConfigurations : IEntityTypeConfiguration<Booking>
         // Ánh xạ Value Object (AcademicTerm) thành các cột trên cùng bảng Bookings
         builder.OwnsOne(b => b.Term, termBuilder =>
         {
+            termBuilder.UsePropertyAccessMode(PropertyAccessMode.Property);
             termBuilder.Property(t => t.TermName).HasColumnName("TermName").HasMaxLength(100).IsRequired();
             termBuilder.Property(t => t.StartDate).HasColumnName("StartDate").IsRequired();
             termBuilder.Property(t => t.EndDate).HasColumnName("EndDate").IsRequired();

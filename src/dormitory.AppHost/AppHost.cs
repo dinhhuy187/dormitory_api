@@ -23,7 +23,8 @@ var rabbitMq = builder.AddRabbitMQ("rabbitmq")
 
 var profileApi = builder.AddProject<Projects.Profile_API>("profile-api")
     .WithReference(profileDb)
-    .WithEndpoint(name: "grpc", scheme: "http")
+    .WithEnvironment("PROFILE_GRPC_PORT", "8081")
+    .WithEndpoint(name: "grpc", targetPort: 8081, scheme: "http")
     .WithEndpointsInEnvironment(endpoint => endpoint.Name != "grpc");
 
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
@@ -31,14 +32,24 @@ var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
     .WithReference(profileApi)
     .WaitFor(profileApi);
 
+profileApi.WithReference(identityApi);
+
 var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
-    .WithReference(roomDb);
+    .WithReference(roomDb)
+    .WithReference(rabbitMq)
+    .WithEnvironment("ROOM_GRPC_PORT", "8082")
+    .WithEndpoint(name: "grpc", targetPort: 8082, scheme: "http")
+    .WithEndpointsInEnvironment(endpoint => endpoint.Name != "grpc");
 
 var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
     .WithReference(bookingDb)
     .WithReference(roomApi)
+    .WithReference(profileApi)
+    .WithReference(identityApi)
     .WithReference(rabbitMq)
-    .WaitFor(roomApi);
+    .WaitFor(roomApi)
+    .WaitFor(profileApi)
+    .WaitFor(identityApi);
 
 var communityApi = builder.AddProject<Projects.Community_API>("community-api")
     .WithReference(communityDb)
@@ -49,7 +60,14 @@ var incidentApi = builder.AddProject<Projects.Incident_API>("incident-api")
     .WithReference(rabbitMq);
 
 var billingApi = builder.AddProject<Projects.Billing_API>("billing-api")
-    .WithReference(billingDb);
+    .WithReference(billingDb)
+    .WithReference(roomApi)
+    .WithReference(bookingApi)
+    .WithReference(profileApi)
+    .WithReference(rabbitMq)
+    .WaitFor(roomApi)
+    .WaitFor(bookingApi)
+    .WaitFor(profileApi);
 
 var chatApi = builder.AddProject<Projects.Chat_API>("chat-api")
     .WithReference(chatDb)
@@ -62,6 +80,7 @@ var gateway = builder.AddProject<Projects.Gateway_API>("gateway-api")
     .WithReference(bookingApi)
     .WithReference(communityApi)
     .WithReference(incidentApi)
+    .WithReference(billingApi)
     .WithReference(chatApi)
     .WithExternalHttpEndpoints();
 
