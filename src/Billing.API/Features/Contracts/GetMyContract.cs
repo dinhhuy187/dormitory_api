@@ -84,7 +84,7 @@ public static class GetMyContract
                 })
                 .WithTags("Billing - Contracts")
                 .WithName("GetMyContract")
-                .WithDescription("Required role: Student. Gets contract information for the authenticated student. StudentId comes from JWT. Student full name is resolved from Profile service. Room and booking information are resolved from RoomService and BookingService; booking fees are registration fees and monthly rent is BookingService PricePerMonth. Source values are LatestInvoice, BookingRoomType, and ActiveTemplate.")
+                .WithDescription("Required role: Student. Gets contract information for the authenticated student. StudentId comes from JWT. Student full name is resolved from Profile service. Room and booking information are resolved from RoomService and BookingService; the latest invoice is the student's latest booking registration invoice. Booking fees are registration fees and monthly rent is BookingService PricePerMonth. Source values are LatestInvoice, BookingRoomType, and ActiveTemplate.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<Response>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
@@ -118,18 +118,17 @@ public static class GetMyContract
             string accessToken,
             CancellationToken cancellationToken)
         {
+            var fullName = await GetStudentFullNameAsync(studentId, accessToken, cancellationToken);
+            var bookings = await bookingContractClient.GetMyBookingsAsync(accessToken, cancellationToken);
+
             var latestInvoice = await dbContext.Invoices
                 .AsNoTracking()
                 .Include(invoice => invoice.ContractTemplate)
                 .Where(invoice => invoice.StudentId == studentId &&
-                                  invoice.InvoiceType == InvoiceType.MonthlyUtility)
-                .OrderByDescending(invoice => invoice.BillingYear)
-                .ThenByDescending(invoice => invoice.BillingMonth)
-                .ThenByDescending(invoice => invoice.CreatedAt)
+                                  invoice.InvoiceType == InvoiceType.BookingRegistration)
+                .OrderByDescending(invoice => invoice.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            var fullName = await GetStudentFullNameAsync(studentId, accessToken, cancellationToken);
-            var bookings = await bookingContractClient.GetMyBookingsAsync(accessToken, cancellationToken);
             var selectedBooking = SelectRelevantBooking(bookings, latestInvoice?.RoomId);
 
             var roomId = latestInvoice?.RoomId ?? selectedBooking?.RoomId;

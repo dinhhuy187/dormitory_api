@@ -15,7 +15,7 @@ public static class GetInvoicesForManager
         Guid RoomId,
         string? BuildingCode,
         int? Floor,
-        Guid StudentId,
+        Guid? StudentId,
         string? TermName,
         DateTime? DueAt,
         string? Description,

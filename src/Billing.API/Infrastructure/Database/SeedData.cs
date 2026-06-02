@@ -490,8 +490,8 @@ public static class SeedData
                         latest.WaterNewIndex);
                 });
 
-        var latestPeriodByRoomStudent = candidates
-            .GroupBy(candidate => new RoomStudentKey(candidate.Booking.RoomId, candidate.Booking.StudentId))
+        var latestPeriodByRoom = candidates
+            .GroupBy(candidate => candidate.Booking.RoomId)
             .ToDictionary(
                 group => group.Key,
                 group => group.Max(candidate => candidate.Year * 12 + candidate.Month));
@@ -586,9 +586,8 @@ public static class SeedData
 
                 var surcharges = CreateRandomSurcharges(random, createdAt);
                 var surchargeTotal = surcharges.Sum(surcharge => surcharge.Amount);
-                var isLatestForRoomStudent = latestPeriodByRoomStudent[
-                    new RoomStudentKey(candidate.Booking.RoomId, candidate.Booking.StudentId)] == candidatePeriod;
-                var status = isLatestForRoomStudent ? InvoiceStatus.Unpaid : InvoiceStatus.Paid;
+                var isLatestForRoom = latestPeriodByRoom[candidate.Booking.RoomId] == candidatePeriod;
+                var status = isLatestForRoom ? InvoiceStatus.Unpaid : InvoiceStatus.Paid;
                 var paidAt = status == InvoiceStatus.Paid
                     ? DateTime.SpecifyKind(billingDate.ToDateTime(TimeOnly.MinValue).AddDays(20), DateTimeKind.Utc)
                     : (DateTime?)null;
@@ -607,7 +606,7 @@ public static class SeedData
                     RoomId = candidate.Booking.RoomId,
                     BuildingCode = room.BuildingCode.Trim(),
                     Floor = room.Floor,
-                    StudentId = candidate.Booking.StudentId,
+                    StudentId = null,
                     BillingMonth = candidate.Month,
                     BillingYear = candidate.Year,
                     ElectricityOldIndex = electricityOldIndex,
@@ -786,8 +785,6 @@ public static class SeedData
     private readonly record struct ContractTemplateKey(string Code, int Version);
 
     private readonly record struct InvoiceSeedKey(Guid RoomId, int Year, short Month);
-
-    private readonly record struct RoomStudentKey(Guid RoomId, Guid StudentId);
 
     private readonly record struct ContractTemplateSeedKey(Guid RoomTypeId, DateOnly BillingDate);
 }

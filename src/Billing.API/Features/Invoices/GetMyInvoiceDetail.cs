@@ -1,6 +1,7 @@
 using Billing.API.Infrastructure.Auth;
 using Billing.API.Infrastructure.Database;
 using Billing.API.Infrastructure.Services;
+using Billing.API.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
@@ -24,29 +25,60 @@ public static class GetMyInvoiceDetail
                         return Results.Unauthorized();
                     }
 
-                    var response = await handler.ExecuteAsync(invoiceId, studentId, ct);
+                    if (!TryGetBearerToken(httpContext, out var accessToken))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var response = await handler.ExecuteAsync(invoiceId, studentId, accessToken, ct);
                     return Results.Ok(new ApiResponse<InvoiceDetailResponse>(response));
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetMyInvoiceDetail")
-                .WithDescription("Required role: Student. Gets full invoice detail for the authenticated student only. Status values are Unpaid, Paid, and Canceled. Response includes invoice type metadata, room location snapshot, current building bank account from RoomService when the room still exists, old/new meter indices, tier snapshots, surcharges, totals, payment status, and contract template snapshot id.")
+                .WithDescription("Required role: Student. Gets full invoice detail for the authenticated student only. Booking registration invoices are matched by StudentId; monthly utility invoices are matched by RoomId from the student's active or confirmed bookings resolved through BookingService. Status values are Unpaid, Paid, and Canceled. Response includes invoice type metadata, room location snapshot, current building bank account from RoomService when the room still exists, old/new meter indices, tier snapshots, surcharges, totals, payment status, and contract template snapshot id.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<InvoiceDetailResponse>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
         }
+
+        private static bool TryGetBearerToken(HttpContext httpContext, out string accessToken)
+        {
+            accessToken = string.Empty;
+            var authorization = httpContext.Request.Headers.Authorization.ToString();
+            const string bearerPrefix = "Bearer ";
+
+            if (string.IsNullOrWhiteSpace(authorization) ||
+                !authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            accessToken = authorization[bearerPrefix.Length..].Trim();
+            return !string.IsNullOrWhiteSpace(accessToken);
+        }
     }
 
-    public sealed class Handler(BillingDbContext dbContext, IRoomBillingClient roomBillingClient)
+    public sealed class Handler(
+        BillingDbContext dbContext,
+        IRoomBillingClient roomBillingClient,
+        IBookingContractClient bookingContractClient)
     {
-        public async Task<InvoiceDetailResponse> ExecuteAsync(Guid invoiceId, Guid studentId, CancellationToken cancellationToken)
+        public async Task<InvoiceDetailResponse> ExecuteAsync(
+            Guid invoiceId,
+            Guid studentId,
+            string accessToken,
+            CancellationToken cancellationToken)
         {
             var invoice = await dbContext.Invoices
                 .AsNoTracking()
                 .Include(invoice => invoice.Surcharges)
-                .FirstOrDefaultAsync(
-                    invoice => invoice.Id == invoiceId && invoice.StudentId == studentId,
-                    cancellationToken)
+                .FirstOrDefaultAsync(invoice => invoice.Id == invoiceId, cancellationToken)
                 ?? throw new ApiException("Invoice not found.", StatusCodes.Status404NotFound);
+
+            if (!await CanAccessInvoiceAsync(invoice, studentId, accessToken, cancellationToken))
+            {
+                throw new ApiException("Invoice not found.", StatusCodes.Status404NotFound);
+            }
 
             var room = await roomBillingClient.GetRoomBillingInfoAsync(invoice.RoomId, cancellationToken);
             var buildingBankAccount = room is null
@@ -54,6 +86,34 @@ public static class GetMyInvoiceDetail
                 : new BuildingBankAccountResponse(room.BankCode, room.AccountNumber, room.AccountName);
 
             return InvoiceResponseMapper.ToDetail(invoice, buildingBankAccount);
+        }
+
+        private async Task<bool> CanAccessInvoiceAsync(
+            Domain.Entities.Invoice invoice,
+            Guid studentId,
+            string accessToken,
+            CancellationToken cancellationToken)
+        {
+            if (invoice.InvoiceType == InvoiceType.BookingRegistration)
+            {
+                return invoice.StudentId == studentId;
+            }
+
+            if (invoice.InvoiceType != InvoiceType.MonthlyUtility)
+            {
+                return false;
+            }
+
+            var bookings = await bookingContractClient.GetMyBookingsAsync(accessToken, cancellationToken);
+            return bookings.Any(booking =>
+                booking.RoomId == invoice.RoomId &&
+                IsEligibleRoomBooking(booking.Status));
+        }
+
+        private static bool IsEligibleRoomBooking(string status)
+        {
+            return status.Equals("Active", StringComparison.OrdinalIgnoreCase) ||
+                   status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

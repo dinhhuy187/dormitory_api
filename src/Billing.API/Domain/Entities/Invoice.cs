@@ -11,7 +11,7 @@ public class Invoice
     public Guid RoomId { get; set; }
     public string? BuildingCode { get; set; }
     public int? Floor { get; set; }
-    public Guid StudentId { get; set; }
+    public Guid? StudentId { get; set; }
     public string? TermName { get; set; }
     public DateTime? DueAt { get; set; }
     public string? Description { get; set; }

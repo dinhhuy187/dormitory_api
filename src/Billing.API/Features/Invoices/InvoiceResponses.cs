@@ -28,7 +28,7 @@ public sealed record InvoiceDetailResponse(
     string? BuildingCode,
     int? Floor,
     BuildingBankAccountResponse? BuildingBankAccount,
-    Guid StudentId,
+    Guid? StudentId,
     string? TermName,
     DateTime? DueAt,
     string? Description,

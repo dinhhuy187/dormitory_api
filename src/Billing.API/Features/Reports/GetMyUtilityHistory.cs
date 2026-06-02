@@ -1,6 +1,7 @@
 using Billing.API.Domain.Enums;
 using Billing.API.Infrastructure.Auth;
 using Billing.API.Infrastructure.Database;
+using Billing.API.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
@@ -33,23 +34,44 @@ public static class GetMyUtilityHistory
                         return Results.Unauthorized();
                     }
 
-                    var response = await handler.ExecuteAsync(new Query(year, limit ?? 12), studentId, ct);
+                    if (!TryGetBearerToken(httpContext, out var accessToken))
+                    {
+                        return Results.Unauthorized();
+                    }
+
+                    var response = await handler.ExecuteAsync(new Query(year, limit ?? 12), accessToken, ct);
                     return Results.Ok(new ApiResponse<IReadOnlyList<UtilityHistoryItemResponse>>(response));
                 })
                 .WithTags("Billing - Reports")
                 .WithName("GetMyUtilityHistory")
-                .WithDescription("Required role: Student. Returns utility cost history for dashboard charts. The student id is taken from the authenticated JWT user id. Canceled invoices are excluded. When year is provided, available months in that year are returned; otherwise the latest limit periods are returned, with limit clamped from 1 to 36.")
+                .WithDescription("Required role: Student. Returns utility cost history for dashboard charts. Monthly utility invoices are matched by RoomId from the student's active or confirmed bookings resolved through BookingService. Canceled invoices are excluded. When year is provided, available months in that year are returned; otherwise the latest limit periods are returned, with limit clamped from 1 to 36.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<IReadOnlyList<UtilityHistoryItemResponse>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
         }
+
+        private static bool TryGetBearerToken(HttpContext httpContext, out string accessToken)
+        {
+            accessToken = string.Empty;
+            var authorization = httpContext.Request.Headers.Authorization.ToString();
+            const string bearerPrefix = "Bearer ";
+
+            if (string.IsNullOrWhiteSpace(authorization) ||
+                !authorization.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            accessToken = authorization[bearerPrefix.Length..].Trim();
+            return !string.IsNullOrWhiteSpace(accessToken);
+        }
     }
 
-    public sealed class Handler(BillingDbContext dbContext)
+    public sealed class Handler(BillingDbContext dbContext, IBookingContractClient bookingContractClient)
     {
         public async Task<IReadOnlyList<UtilityHistoryItemResponse>> ExecuteAsync(
             Query query,
-            Guid studentId,
+            string accessToken,
             CancellationToken cancellationToken)
         {
             if (query.Year is < 2020 or > 2100)
@@ -57,9 +79,15 @@ public static class GetMyUtilityHistory
                 throw new ApiException("year must be between 2020 and 2100.", StatusCodes.Status400BadRequest);
             }
 
+            var eligibleRoomIds = await GetEligibleRoomIdsAsync(accessToken, cancellationToken);
+            if (eligibleRoomIds.Count == 0)
+            {
+                return [];
+            }
+
             var invoicesQuery = dbContext.Invoices
                 .AsNoTracking()
-                .Where(invoice => invoice.StudentId == studentId &&
+                .Where(invoice => eligibleRoomIds.Contains(invoice.RoomId) &&
                                   invoice.InvoiceType == InvoiceType.MonthlyUtility &&
                                   invoice.Status != InvoiceStatus.Canceled);
 
@@ -100,6 +128,22 @@ public static class GetMyUtilityHistory
                 .OrderBy(item => item.Year)
                 .ThenBy(item => item.Month)
                 .ToList();
+        }
+
+        private async Task<List<Guid>> GetEligibleRoomIdsAsync(string accessToken, CancellationToken cancellationToken)
+        {
+            var bookings = await bookingContractClient.GetMyBookingsAsync(accessToken, cancellationToken);
+            return bookings
+                .Where(booking => IsEligibleRoomBooking(booking.Status))
+                .Select(booking => booking.RoomId)
+                .Distinct()
+                .ToList();
+        }
+
+        private static bool IsEligibleRoomBooking(string status)
+        {
+            return status.Equals("Active", StringComparison.OrdinalIgnoreCase) ||
+                   status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

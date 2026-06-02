@@ -80,7 +80,7 @@ public class Booking : Entity, IAggregateRoot
     public void MarkCreatedForPayment()
     {
         if (Status != BookingStatus.Pending)
-            throw new DomainException("Chá»‰ cÃ³ thá»ƒ táº¡o yÃªu cáº§u thanh toÃ¡n cho Ä‘Æ¡n Ä‘áº·t phÃ²ng Ä‘ang á»Ÿ tráº¡ng thÃ¡i Pending.");
+            throw new DomainException("Chỉ có thể tạo yêu cầu thanh toán cho đơn đặt phòng đang ở trạng thái Pending.");
 
         AddDomainEvent(new BookingCreatedDomainEvent(
             Id,

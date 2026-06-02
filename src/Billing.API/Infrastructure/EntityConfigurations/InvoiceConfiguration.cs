@@ -14,6 +14,8 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             table.HasCheckConstraint("CK_Invoices_ElectricityIndex", "\"ElectricityNewIndex\" >= \"ElectricityOldIndex\"");
             table.HasCheckConstraint("CK_Invoices_WaterIndex", "\"WaterNewIndex\" >= \"WaterOldIndex\"");
             table.HasCheckConstraint("CK_Invoices_Floor", "\"Floor\" IS NULL OR \"Floor\" > 0");
+            table.HasCheckConstraint("CK_Invoices_MonthlyUtilityScope", "\"InvoiceType\" <> 'MonthlyUtility' OR (\"BookingId\" IS NULL AND \"StudentId\" IS NULL)");
+            table.HasCheckConstraint("CK_Invoices_BookingRegistrationScope", "\"InvoiceType\" <> 'BookingRegistration' OR (\"BookingId\" IS NOT NULL AND \"StudentId\" IS NOT NULL)");
         });
 
         builder.HasKey(i => i.Id);

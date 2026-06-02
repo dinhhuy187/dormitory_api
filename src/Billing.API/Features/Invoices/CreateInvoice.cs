@@ -26,7 +26,7 @@ public static class CreateInvoice
     public sealed record Response(
         Guid InvoiceId,
         Guid RoomId,
-        Guid StudentId,
+        Guid? StudentId,
         short Month,
         int Year,
         int RoomCapacity,
@@ -102,7 +102,7 @@ public static class CreateInvoice
     {
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-        public async Task<Response> ExecuteAsync(Command command, Guid studentId, CancellationToken cancellationToken)
+        public async Task<Response> ExecuteAsync(Command command, Guid currentUserId, CancellationToken cancellationToken)
         {
             var room = await roomBillingClient.GetRoomBillingInfoAsync(command.RoomId, cancellationToken)
                 ?? throw new ApiException("Room not found.", StatusCodes.Status404NotFound);
@@ -190,7 +190,7 @@ public static class CreateInvoice
                 RoomId = command.RoomId,
                 BuildingCode = room.BuildingCode.Trim(),
                 Floor = room.Floor,
-                StudentId = studentId,
+                StudentId = null,
                 BillingMonth = command.Month,
                 BillingYear = command.Year,
                 ElectricityOldIndex = electricityOldIndex,
