@@ -25,9 +25,9 @@ public static class HidePost
                     ?? httpContext.User.FindFirstValue("sub")
                     ?? throw new UnauthorizedAccessException();
 
-                var isAdminOrStaff = httpContext.User.IsInRole("Admin") || httpContext.User.IsInRole("Staff");
+                var isAdminOrManager = httpContext.User.IsInRole("Admin") || httpContext.User.IsInRole("Manager");
 
-                var result = await handler.ExecuteAsync(id, userId, isAdminOrStaff, ct);
+                var result = await handler.ExecuteAsync(id, userId, isAdminOrManager, ct);
                 return Results.Ok(new ApiResponse<Response>(result));
             })
             .WithTags("Posts")
@@ -39,7 +39,7 @@ public static class HidePost
 
     public class Handler(CommunityDbContext dbContext)
     {
-        public async Task<Response> ExecuteAsync(Guid id, string userId, bool isAdminOrStaff, CancellationToken ct)
+        public async Task<Response> ExecuteAsync(Guid id, string userId, bool isAdminOrManager, CancellationToken ct)
         {
             var post = await dbContext.Posts
                 .FirstOrDefaultAsync(p => p.Id == id, ct);
@@ -47,8 +47,8 @@ public static class HidePost
             if (post is null)
                 throw new ApiException("Bài viết không tồn tại.", StatusCodes.Status404NotFound);
 
-            // Chỉ tác giả hoặc Admin/Staff mới được ẩn/hiện bài
-            if (post.AuthorId != userId && !isAdminOrStaff)
+            // Chỉ tác giả hoặc Admin/Manager mới được ẩn/hiện bài
+            if (post.AuthorId != userId && !isAdminOrManager)
                 throw new ApiException("Bạn không có quyền thực hiện hành động này.", StatusCodes.Status403Forbidden);
 
             // Toggle trạng thái ẩn

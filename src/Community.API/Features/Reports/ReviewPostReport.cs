@@ -53,7 +53,7 @@ public static class ReviewPostReport
             })
             .WithTags("Reports")
             .WithName("ReviewPostReport")
-            .RequireAuthorization(policy => policy.RequireRole("Admin", "Staff"))
+            .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager"))
             .Produces<ApiResponse<Response>>(StatusCodes.Status200OK)
             .ProducesValidationProblem();
         }

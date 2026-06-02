@@ -38,7 +38,7 @@ public static class GetPostReports
             })
             .WithTags("Reports")
             .WithName("GetPostReports")
-            .RequireAuthorization(policy => policy.RequireRole("Admin", "Staff"))
+            .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager"))
             .Produces<ApiResponse<List<ReportDto>>>(StatusCodes.Status200OK);
         }
     }

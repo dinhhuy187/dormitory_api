@@ -27,10 +27,10 @@ public static class DeleteMessage
                     ?? httpContext.User.FindFirstValue("sub")
                     ?? throw new UnauthorizedAccessException();
 
-                var isAdminOrStaff = httpContext.User.IsInRole("Admin") || httpContext.User.IsInRole("Staff");
+                var isAdminOrManager = httpContext.User.IsInRole("Admin") || httpContext.User.IsInRole("Manager");
 
                 var result = await handler.ExecuteAsync(
-                    conversationId, messageId, userId, isAdminOrStaff, ct);
+                    conversationId, messageId, userId, isAdminOrManager, ct);
 
                 return Results.Ok(new ApiResponse<Response>(result));
             })
@@ -45,7 +45,7 @@ public static class DeleteMessage
     {
         public async Task<Response> ExecuteAsync(
             Guid conversationId, Guid messageId,
-            string userId, bool isAdminOrStaff,
+            string userId, bool isAdminOrManager,
             CancellationToken ct)
         {
             var message = await dbContext.Messages
@@ -58,7 +58,7 @@ public static class DeleteMessage
             if (message.IsDeleted)
                 throw new ApiException("Tin nhắn đã bị xóa rồi.", StatusCodes.Status400BadRequest);
 
-            if (message.SenderId != userId && !isAdminOrStaff)
+            if (message.SenderId != userId && !isAdminOrManager)
                 throw new ApiException("Bạn không có quyền xóa tin nhắn này.", StatusCodes.Status403Forbidden);
 
             message.IsDeleted = true;

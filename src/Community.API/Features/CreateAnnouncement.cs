@@ -72,7 +72,7 @@ public static class CreateAnnouncement
             .WithTags("Announcements")
             .WithName("CreateAnnouncement")
             .RequireAuthorization(policy =>
-                policy.RequireRole("Admin", "Staff"))
+                policy.RequireRole("Admin", "Manager"))
             .DisableAntiforgery()
             .Produces<Response>(StatusCodes.Status201Created);
         }

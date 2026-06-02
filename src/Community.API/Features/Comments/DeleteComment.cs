@@ -26,9 +26,9 @@ public static class DeleteComment
                     ?? httpContext.User.FindFirstValue("sub")
                     ?? throw new UnauthorizedAccessException();
 
-                var isAdminOrStaff = httpContext.User.IsInRole("Admin") || httpContext.User.IsInRole("Staff");
+                var isAdminOrManager = httpContext.User.IsInRole("Admin") || httpContext.User.IsInRole("Manager");
 
-                var result = await handler.ExecuteAsync(postId, commentId, userId, isAdminOrStaff, ct);
+                var result = await handler.ExecuteAsync(postId, commentId, userId, isAdminOrManager, ct);
                 return Results.Ok(new ApiResponse<Response>(result));
             })
             .WithTags("Comments")
@@ -41,7 +41,7 @@ public static class DeleteComment
     public class Handler(CommunityDbContext dbContext)
     {
         public async Task<Response> ExecuteAsync(
-            Guid postId, Guid commentId, string userId, bool isAdminOrStaff, CancellationToken ct)
+            Guid postId, Guid commentId, string userId, bool isAdminOrManager, CancellationToken ct)
         {
             var comment = await dbContext.PostComments
                 .Include(c => c.Post)
@@ -50,8 +50,8 @@ public static class DeleteComment
             if (comment is null)
                 throw new ApiException("Bình luận không tồn tại.", StatusCodes.Status404NotFound);
 
-            // Chủ comment hoặc Admin/Staff mới được xóa
-            if (comment.AuthorId != userId && !isAdminOrStaff)
+            // Chủ comment hoặc Admin/Manager mới được xóa
+            if (comment.AuthorId != userId && !isAdminOrManager)
                 throw new ApiException("Bạn không có quyền xóa bình luận này.", StatusCodes.Status403Forbidden);
 
             // Soft delete — ẩn comment

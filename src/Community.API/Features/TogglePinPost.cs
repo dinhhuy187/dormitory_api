@@ -28,7 +28,7 @@ public static class TogglePinPost
             })
             .WithTags("Posts")
             .WithName("TogglePinPost")
-            .RequireAuthorization(policy => policy.RequireRole("Admin", "Staff"))
+            .RequireAuthorization(policy => policy.RequireRole("Admin", "Manager"))
             .Produces<ApiResponse<Response>>(StatusCodes.Status200OK);
         }
     }
