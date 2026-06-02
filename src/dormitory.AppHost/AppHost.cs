@@ -43,9 +43,11 @@ var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
     .WithReference(bookingDb)
     .WithReference(roomApi)
     .WithReference(profileApi)
+    .WithReference(identityApi)
     .WithReference(rabbitMq)
     .WaitFor(roomApi)
-    .WaitFor(profileApi);
+    .WaitFor(profileApi)
+    .WaitFor(identityApi);
 
 var communityApi = builder.AddProject<Projects.Community_API>("community-api")
     .WithReference(communityDb)
