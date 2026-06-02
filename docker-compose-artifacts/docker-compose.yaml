@@ -101,6 +101,9 @@ services:
       PROFILE_API_HTTPS: "https://profile-api:${PROFILE_API_PORT}"
       PROFILE_API_GRPC: "http://profile-api:8081"
       services__profile-api__grpc__0: "http://profile-api:8081"
+      IDENTITY_API_HTTP: "http://identity-api:${IDENTITY_API_PORT}"
+      services__identity-api__http__0: "http://identity-api:${IDENTITY_API_PORT}"
+      IDENTITY_API_HTTPS: "https://identity-api:${IDENTITY_API_PORT}"
       ConnectionStrings__rabbitmq: "amqp://guest:${RABBITMQ_PASSWORD}@rabbitmq:5672"
       RABBITMQ_HOST: "rabbitmq"
       RABBITMQ_PORT: "5672"
@@ -116,6 +119,8 @@ services:
       room-api:
         condition: "service_started"
       profile-api:
+        condition: "service_started"
+      identity-api:
         condition: "service_started"
     networks:
       - "aspire"

@@ -17,6 +17,8 @@ public static class GetFinancialSummary
         decimal TotalDebt,
         int PaidInvoices,
         int PendingInvoices,
+        int WaitForConfirmInvoices,
+        decimal WaitForConfirmAmount,
         RevenueChartResponse RevenueChart,
         IReadOnlyList<DebtChartItemResponse> DebtChart);
 
@@ -59,7 +61,7 @@ public static class GetFinancialSummary
                 })
                 .WithTags("Billing - Reports")
                 .WithName("GetFinancialSummary")
-                .WithDescription("Required role: Admin. Returns finance KPIs and chart data. type accepts MONTH, QUARTER, or YEAR. month is required for MONTH as 1-12 and for QUARTER as 1-4; month is ignored for YEAR. Status values are Unpaid, Paid, and Canceled; Canceled invoices are ignored. debtChart is empty for future QUARTER or YEAR periods.")
+                .WithDescription("Required role: Admin. Returns finance KPIs and chart data. type accepts MONTH, QUARTER, or YEAR. month is required for MONTH as 1-12 and for QUARTER as 1-4; month is ignored for YEAR. Status values are Unpaid, WaitForConfirm, Paid, and Canceled; Canceled invoices are ignored. TotalDebt includes Unpaid and WaitForConfirm invoices. debtChart is empty for future QUARTER or YEAR periods.")
                 .RequireAuthorization(policy => policy.RequireRole("Admin"))
                 .Produces<Response>(StatusCodes.Status200OK)
                 .ProducesValidationProblem();
@@ -86,18 +88,24 @@ public static class GetFinancialSummary
                     TotalRevenue = group
                         .Where(invoice => invoice.Status == InvoiceStatus.Paid)
                         .Sum(invoice => invoice.TotalAmount),
-                    TotalDebt = group
+                    UnpaidAmount = group
                         .Where(invoice => invoice.Status == InvoiceStatus.Unpaid)
                         .Sum(invoice => invoice.TotalAmount),
+                    WaitForConfirmAmount = group
+                        .Where(invoice => invoice.Status == InvoiceStatus.WaitForConfirm)
+                        .Sum(invoice => invoice.TotalAmount),
                     PaidInvoices = group.Count(invoice => invoice.Status == InvoiceStatus.Paid),
-                    PendingInvoices = group.Count(invoice => invoice.Status == InvoiceStatus.Unpaid)
+                    PendingInvoices = group.Count(invoice => invoice.Status == InvoiceStatus.Unpaid),
+                    WaitForConfirmInvoices = group.Count(invoice => invoice.Status == InvoiceStatus.WaitForConfirm)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
             var totalRevenue = summary?.TotalRevenue ?? 0;
-            var totalDebt = summary?.TotalDebt ?? 0;
+            var waitForConfirmAmount = summary?.WaitForConfirmAmount ?? 0;
+            var totalDebt = (summary?.UnpaidAmount ?? 0) + waitForConfirmAmount;
             var paidInvoices = summary?.PaidInvoices ?? 0;
             var pendingInvoices = summary?.PendingInvoices ?? 0;
+            var waitForConfirmInvoices = summary?.WaitForConfirmInvoices ?? 0;
 
             var revenueChart = await BuildRevenueChartAsync(period, cancellationToken);
             var debtChart = BuildDebtChart(period, totalRevenue, totalDebt);
@@ -107,6 +115,8 @@ public static class GetFinancialSummary
                 totalDebt,
                 paidInvoices,
                 pendingInvoices,
+                waitForConfirmInvoices,
+                waitForConfirmAmount,
                 revenueChart,
                 debtChart);
         }

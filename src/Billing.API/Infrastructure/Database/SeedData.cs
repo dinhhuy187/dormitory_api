@@ -22,15 +22,16 @@ public static class SeedData
     {
         await SeedServicePriceTiersAsync(dbContext, cancellationToken);
         var roomTypes = await GetRoomTypesFromRoomServiceAsync(httpClientFactory, logger, cancellationToken);
+        var roomBillingInfoByRoomId = await GetRoomBillingInfoFromRoomServiceAsync(httpClientFactory, logger, cancellationToken);
         await DeactivateLegacyContractTemplateAsync(dbContext, logger, cancellationToken);
         await SeedContractTemplatesAsync(dbContext, roomTypes, logger, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var bookings = await GetBookingsFromBookingServiceAsync(httpClientFactory, logger, cancellationToken);
-        await SeedBookingRegistrationInvoicesAsync(dbContext, bookings, roomBillingClient, logger, cancellationToken);
+        await SeedBookingRegistrationInvoicesAsync(dbContext, bookings, roomBillingClient, roomBillingInfoByRoomId, logger, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        await SeedMonthlyUtilityInvoicesAndSurchargesAsync(dbContext, bookings, roomBillingClient, logger, cancellationToken);
+        await SeedMonthlyUtilityInvoicesAndSurchargesAsync(dbContext, bookings, roomBillingClient, roomBillingInfoByRoomId, logger, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -194,6 +195,65 @@ public static class SeedData
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to sync room types from RoomService for Billing contract template seed.");
+            return [];
+        }
+    }
+
+    private static async Task<Dictionary<Guid, RoomBillingInfo?>> GetRoomBillingInfoFromRoomServiceAsync(
+        IHttpClientFactory httpClientFactory,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var client = httpClientFactory.CreateClient("RoomServiceClient");
+            var rooms = await client.GetFromJsonAsync<List<RoomBillingSyncDto>>(
+                "/api/rooms/sync",
+                cancellationToken);
+
+            if (rooms is null || rooms.Count == 0)
+            {
+                logger.LogWarning("RoomService room sync returned no data. Billing invoice seed will fall back to per-room gRPC lookups.");
+                return [];
+            }
+
+            var roomCache = new Dictionary<Guid, RoomBillingInfo?>();
+            foreach (var room in rooms)
+            {
+                if (room.Id == Guid.Empty ||
+                    room.RoomTypeId == Guid.Empty ||
+                    string.IsNullOrWhiteSpace(room.RoomNumber) ||
+                    string.IsNullOrWhiteSpace(room.RoomTypeName) ||
+                    string.IsNullOrWhiteSpace(room.BuildingCode) ||
+                    room.Floor <= 0)
+                {
+                    continue;
+                }
+
+                roomCache[room.Id] = new RoomBillingInfo(
+                    room.Id,
+                    room.RoomNumber.Trim(),
+                    room.RoomTypeId,
+                    room.RoomTypeName.Trim(),
+                    room.Capacity,
+                    room.OccupiedCount,
+                    room.Status,
+                    room.BuildingCode.Trim(),
+                    room.Floor,
+                    Normalize(room.BankCode),
+                    Normalize(room.AccountNumber),
+                    Normalize(room.AccountName));
+            }
+
+            logger.LogInformation(
+                "Preloaded {RoomCount} rooms from RoomService sync for Billing invoice seed.",
+                roomCache.Count);
+
+            return roomCache;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to preload rooms from RoomService sync. Billing invoice seed will fall back to per-room gRPC lookups.");
             return [];
         }
     }
@@ -414,6 +474,7 @@ public static class SeedData
         BillingDbContext dbContext,
         IReadOnlyList<BookingBillingSyncDto> bookings,
         IRoomBillingClient roomBillingClient,
+        Dictionary<Guid, RoomBillingInfo?> roomCache,
         ILogger logger,
         CancellationToken cancellationToken)
     {
@@ -437,7 +498,6 @@ public static class SeedData
             .ToListAsync(cancellationToken);
 
         var existingBookingInvoiceIdSet = existingBookingInvoiceIds.ToHashSet();
-        var roomCache = new Dictionary<Guid, RoomBillingInfo?>();
         var createdCount = 0;
         var skippedCount = 0;
 
@@ -531,6 +591,7 @@ public static class SeedData
         BillingDbContext dbContext,
         IReadOnlyList<BookingBillingSyncDto> bookings,
         IRoomBillingClient roomBillingClient,
+        Dictionary<Guid, RoomBillingInfo?> roomCache,
         ILogger logger,
         CancellationToken cancellationToken)
     {
@@ -611,10 +672,17 @@ public static class SeedData
                 group => group.Max(candidate => candidate.Year * 12 + candidate.Month));
 
         var random = new Random(20260531);
-        var roomCache = new Dictionary<Guid, RoomBillingInfo?>();
+        var tierCache = new Dictionary<TierCacheKey, IReadOnlyList<ServicePriceTier>>();
         var contractTemplateCache = new Dictionary<ContractTemplateSeedKey, Guid?>();
         var createdCount = 0;
         var skippedCount = 0;
+        var processedCount = 0;
+        var pendingSaveCount = 0;
+
+        logger.LogInformation(
+            "Billing monthly utility invoice seed started with {CandidateCount} candidates across {RoomCount} rooms.",
+            candidates.Count,
+            candidateRoomIds.Count);
 
         foreach (var roomGroup in candidates.GroupBy(candidate => candidate.Booking.RoomId))
         {
@@ -634,6 +702,7 @@ public static class SeedData
 
             foreach (var candidate in roomGroup.OrderBy(candidate => candidate.Year).ThenBy(candidate => candidate.Month))
             {
+                processedCount++;
                 var candidateKey = new InvoiceSeedKey(candidate.Booking.RoomId, candidate.Year, candidate.Month);
                 if (existingKeys.Contains(candidateKey))
                 {
@@ -661,14 +730,16 @@ public static class SeedData
                 InvoiceCalculationHelper.CalculationResult waterCalculation;
                 try
                 {
-                    var electricityTiers = await InvoiceCalculationHelper.GetApplicableTiersAsync(
+                    var electricityTiers = await GetApplicableTiersForSeedAsync(
                         dbContext,
+                        tierCache,
                         ServiceType.Electricity,
                         room.Capacity,
                         billingDate,
                         cancellationToken);
-                    var waterTiers = await InvoiceCalculationHelper.GetApplicableTiersAsync(
+                    var waterTiers = await GetApplicableTiersForSeedAsync(
                         dbContext,
+                        tierCache,
                         ServiceType.Water,
                         room.Capacity,
                         billingDate,
@@ -753,6 +824,19 @@ public static class SeedData
                 meterState = new MeterState(candidate.Year, candidate.Month, electricityNewIndex, waterNewIndex);
                 continuityByRoom[roomGroup.Key] = meterState;
                 createdCount++;
+                pendingSaveCount++;
+
+                if (pendingSaveCount >= 500)
+                {
+                    await dbContext.SaveChangesAsync(cancellationToken);
+                    pendingSaveCount = 0;
+                    logger.LogInformation(
+                        "Billing monthly utility invoice seed progress: processed {ProcessedCount}/{CandidateCount}, created {CreatedCount}, skipped {SkippedCount}.",
+                        processedCount,
+                        candidates.Count,
+                        createdCount,
+                        skippedCount);
+                }
             }
         }
 
@@ -783,6 +867,31 @@ public static class SeedData
             logger.LogWarning(ex, "Skipping Billing invoice seed for room {RoomId} because RoomService lookup failed.", roomId);
             return null;
         }
+    }
+
+    private static async Task<IReadOnlyList<ServicePriceTier>> GetApplicableTiersForSeedAsync(
+        BillingDbContext dbContext,
+        Dictionary<TierCacheKey, IReadOnlyList<ServicePriceTier>> cache,
+        ServiceType serviceType,
+        int roomCapacity,
+        DateOnly billingDate,
+        CancellationToken cancellationToken)
+    {
+        var cacheKey = new TierCacheKey(serviceType, roomCapacity, billingDate);
+        if (cache.TryGetValue(cacheKey, out var tiers))
+        {
+            return tiers;
+        }
+
+        tiers = await InvoiceCalculationHelper.GetApplicableTiersAsync(
+            dbContext,
+            serviceType,
+            roomCapacity,
+            billingDate,
+            cancellationToken);
+
+        cache[cacheKey] = tiers;
+        return tiers;
     }
 
     private static List<BookingBillingSyncDto> GetEligibleBookings(IReadOnlyList<BookingBillingSyncDto> bookings)
@@ -817,6 +926,11 @@ public static class SeedData
             DateTimeKind.Local => value.ToUniversalTime(),
             _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
         };
+    }
+
+    private static string? Normalize(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private static IReadOnlyList<(int Year, short Month)> GetCandidateMonths(
@@ -909,6 +1023,20 @@ public static class SeedData
         decimal BasePrice,
         List<string> Amenities);
 
+    private sealed record RoomBillingSyncDto(
+        Guid Id,
+        string? RoomNumber,
+        Guid RoomTypeId,
+        string? RoomTypeName,
+        int Capacity,
+        int OccupiedCount,
+        string Status,
+        string? BuildingCode,
+        int Floor,
+        string? BankCode,
+        string? AccountNumber,
+        string? AccountName);
+
     private sealed record BookingBillingSyncDto(
         Guid BookingId,
         Guid RoomId,
@@ -942,6 +1070,8 @@ public static class SeedData
     private readonly record struct ContractTemplateKey(string Code, int Version);
 
     private readonly record struct InvoiceSeedKey(Guid RoomId, int Year, short Month);
+
+    private readonly record struct TierCacheKey(ServiceType ServiceType, int RoomCapacity, DateOnly BillingDate);
 
     private readonly record struct ContractTemplateSeedKey(Guid RoomTypeId, DateOnly BillingDate);
 }

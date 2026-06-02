@@ -35,7 +35,7 @@ public static class CancelInvoice
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("CancelInvoice")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Soft-cancels an invoice; DELETE does not hard delete the database row, surcharge lines, or tier snapshots. Only Unpaid invoices can be canceled. Status values are Unpaid, Paid, and Canceled.")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Soft-cancels an invoice; DELETE does not hard delete the database row, surcharge lines, or tier snapshots. Only Unpaid invoices can be canceled. Status values are Unpaid, WaitForConfirm, Paid, and Canceled.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .Produces<Response>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
@@ -58,6 +58,16 @@ public static class CancelInvoice
             if (invoice.Status == InvoiceStatus.Canceled)
             {
                 throw new ApiException("Invoice has already been canceled.", StatusCodes.Status409Conflict);
+            }
+
+            if (invoice.Status == InvoiceStatus.WaitForConfirm)
+            {
+                throw new ApiException("Invoices waiting for payment confirmation cannot be canceled.", StatusCodes.Status409Conflict);
+            }
+
+            if (invoice.Status != InvoiceStatus.Unpaid)
+            {
+                throw new ApiException("Only unpaid invoices can be canceled.", StatusCodes.Status409Conflict);
             }
 
             var now = DateTime.UtcNow;

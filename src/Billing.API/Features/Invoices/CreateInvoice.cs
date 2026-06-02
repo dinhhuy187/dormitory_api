@@ -89,7 +89,7 @@ public static class CreateInvoice
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("CreateInvoice")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Creates a monthly invoice for a room. Room existence, room type, capacity, building code, and floor are resolved through RoomService gRPC; building code and floor are stored as invoice snapshots. Old meter indices are derived from the latest non-canceled room invoice. A room-type-specific contract template snapshot is linked when available, with generic fallback. New invoice status is Unpaid. Status values are Unpaid, Paid, and Canceled. Electricity receives 8% VAT; water prices already include fees and tax.")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Creates a monthly invoice for a room. Room existence, room type, capacity, building code, and floor are resolved through RoomService gRPC; building code and floor are stored as invoice snapshots. Old meter indices are derived from the latest non-canceled room invoice. A room-type-specific contract template snapshot is linked when available, with generic fallback. New invoice status is Unpaid. Status values are Unpaid, WaitForConfirm, Paid, and Canceled. Electricity receives 8% VAT; water prices already include fees and tax.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .AddEndpointFilter<ValidationFilter<Command>>()
                 .Produces<Response>(StatusCodes.Status201Created)

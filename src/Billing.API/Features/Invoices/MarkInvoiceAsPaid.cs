@@ -38,7 +38,7 @@ public static class MarkInvoiceAsPaid
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("MarkInvoiceAsPaid")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Marks an invoice as paid. The only allowed state transition is Unpaid to Paid; Canceled invoices cannot be paid. Status values are Unpaid, Paid, and Canceled. PaidAt is set to current UTC time and UpdatedByUserId is taken from the authenticated JWT user id.")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Marks an invoice as paid. Allowed state transitions are Unpaid to Paid and WaitForConfirm to Paid; Canceled invoices cannot be paid. Status values are Unpaid, WaitForConfirm, Paid, and Canceled. PaidAt is set to current UTC time and UpdatedByUserId is taken from the authenticated JWT user id.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .Produces<Response>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
@@ -61,6 +61,11 @@ public static class MarkInvoiceAsPaid
             if (invoice.Status == InvoiceStatus.Canceled)
             {
                 throw new ApiException("Canceled invoices cannot be marked as paid.", StatusCodes.Status409Conflict);
+            }
+
+            if (invoice.Status != InvoiceStatus.Unpaid && invoice.Status != InvoiceStatus.WaitForConfirm)
+            {
+                throw new ApiException("Only unpaid invoices or invoices waiting for confirmation can be marked as paid.", StatusCodes.Status409Conflict);
             }
 
             var now = DateTime.UtcNow;
