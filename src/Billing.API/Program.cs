@@ -46,10 +46,9 @@ builder.Services.AddMassTransit(x =>
     });
 });
 
-var roomGrpcAddress = builder.Configuration["Services:room-api:grpc:0"] ?? "http://room-api:8082";
 builder.Services.AddGrpcClient<RoomBillingReader.RoomBillingReaderClient>(options =>
 {
-    options.Address = new Uri(roomGrpcAddress);
+    options.Address = new Uri("http://_grpc.room-api");
 });
 builder.Services.AddScoped<IRoomBillingClient, RoomBillingClient>();
 

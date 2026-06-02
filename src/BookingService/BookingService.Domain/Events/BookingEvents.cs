@@ -25,4 +25,4 @@ public record BookingCreatedFeeSnapshot(
 public record BookingConfirmedDomainEvent(Guid BookingId, Guid RoomId) : IDomainEvent;
 public record BookingCanceledDomainEvent(Guid BookingId, Guid RoomId) : IDomainEvent;
 public record StudentCheckedInDomainEvent(Guid BookingId, Guid RoomId, Guid UserId) : IDomainEvent;
-public record StudentCheckedOutDomainEvent(Guid BookingId, Guid RoomId) : IDomainEvent;
+public record StudentCheckedOutDomainEvent(Guid BookingId, Guid RoomId, Guid UserId) : IDomainEvent;

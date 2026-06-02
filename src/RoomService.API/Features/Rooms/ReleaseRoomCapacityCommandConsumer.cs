@@ -23,7 +23,7 @@ public sealed class ReleaseRoomCapacityCommandConsumer(RoomDbContext dbContext)
 
         if (reservation is null)
         {
-            await PublishCurrentRoomStateIfAvailableAsync(context);
+            await ReleaseRoomWithoutReservationAsync(context);
             await dbContext.SaveChangesAsync(context.CancellationToken);
             if (transaction is not null)
             {
@@ -73,6 +73,40 @@ public sealed class ReleaseRoomCapacityCommandConsumer(RoomDbContext dbContext)
         {
             await transaction.CommitAsync(context.CancellationToken);
         }
+    }
+
+    private async Task ReleaseRoomWithoutReservationAsync(ConsumeContext<ReleaseRoomCapacityCommand> context)
+    {
+        var command = context.Message;
+        var room = await dbContext.Rooms
+            .Include(room => room.RoomType)
+            .FirstOrDefaultAsync(room => room.Id == command.RoomId, context.CancellationToken);
+
+        if (room is null)
+        {
+            return;
+        }
+
+        var releasedAt = DateTime.UtcNow;
+        room.OccupiedCount = Math.Max(0, room.OccupiedCount - 1);
+        if (room.RoomStatus != RoomStatus.MAINTENANCE &&
+            room.OccupiedCount < (room.RoomType?.Capacity ?? 0))
+        {
+            room.RoomStatus = RoomStatus.AVAILABLE;
+        }
+
+        dbContext.RoomReservations.Add(new Domain.Entities.RoomReservation
+        {
+            BookingId = command.BookingId,
+            RoomId = command.RoomId,
+            StudentId = command.StudentId,
+            Status = RoomReservationStatus.Released,
+            ReservedAt = command.RequestedAt == default ? releasedAt : command.RequestedAt,
+            ReleasedAt = releasedAt,
+            ReleaseReason = command.Reason
+        });
+
+        await PublishReleasedAsync(context, room, releasedAt);
     }
 
     private async Task PublishCurrentRoomStateIfAvailableAsync(ConsumeContext<ReleaseRoomCapacityCommand> context)

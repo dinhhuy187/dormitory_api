@@ -2,6 +2,8 @@ namespace BookingService.Application.UseCases.Bookings.Queries.GetRoomStudents;
 
 public sealed record GetRoomStudentsQuery(Guid UserId);
 
+public sealed record GetRoomStudentsByRoomQuery(Guid RoomId);
+
 public sealed record RoomStudentsResponse(
     Guid RoomId,
     RoomDetailResponse Room,

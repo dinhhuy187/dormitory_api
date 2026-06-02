@@ -33,6 +33,7 @@ public static class DependencyInjection
             // x.AddConsumer<RoomPriceupdatedEventHandler>();
             x.AddConsumer<CancelBookingCommandConsumer>();
             x.AddConsumer<ConfirmBookingCommandConsumer>();
+            x.AddConsumer<StudentCheckedOutDomainEventConsumer>();
             x.AddConsumer<RoomCapacityReservedProjectionConsumer>();
             x.AddConsumer<RoomCapacityReleasedProjectionConsumer>();
 

@@ -24,16 +24,14 @@ builder.AddServiceDefaults();
 builder.Services.AddApplicationLayer();
 builder.Services.AddInfrastructureLayer(builder.Configuration);
 
-var profileGrpcAddress = builder.Configuration["Services:profile-api:grpc:0"] ?? "http://profile-api:8081";
 builder.Services.AddGrpcClient<ProfileReader.ProfileReaderClient>(options =>
 {
-    options.Address = new Uri(profileGrpcAddress);
+    options.Address = new Uri("http://_grpc.profile-api");
 });
 
-var roomGrpcAddress = builder.Configuration["Services:room-api:grpc:0"] ?? "http://room-api:8082";
 builder.Services.AddGrpcClient<RoomBillingReader.RoomBillingReaderClient>(options =>
 {
-    options.Address = new Uri(roomGrpcAddress);
+    options.Address = new Uri("http://_grpc.room-api");
 });
 
 builder.Services.AddOpenApi(options =>

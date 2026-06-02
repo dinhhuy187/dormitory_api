@@ -207,7 +207,15 @@ public class Booking : Entity, IAggregateRoot
         Status = BookingStatus.Completed;
         UpdatedAt = DateTime.UtcNow;
 
-        AddDomainEvent(new StudentCheckedOutDomainEvent(Id, RoomId));
+        AddDomainEvent(new StudentCheckedOutDomainEvent(Id, RoomId, UserId));
+    }
+
+    public void RequestCheckoutReleaseRetry()
+    {
+        if (Status != BookingStatus.Completed)
+            throw new DomainException("Chi co the retry release cho booking da checkout.");
+
+        AddDomainEvent(new StudentCheckedOutDomainEvent(Id, RoomId, UserId));
     }
 }
 

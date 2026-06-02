@@ -26,6 +26,25 @@ public sealed class GetRoomStudentsUseCase(
         }
 
         var roomId = currentBooking.RoomId;
+        return await BuildRoomStudentsResponseAsync(roomId, cancellationToken);
+    }
+
+    public async Task<Result<RoomStudentsResponse>> ExecuteByRoomIdAsync(
+        GetRoomStudentsByRoomQuery query,
+        CancellationToken cancellationToken)
+    {
+        if (query.RoomId == Guid.Empty)
+        {
+            return Result<RoomStudentsResponse>.Failure("RoomId is required.");
+        }
+
+        return await BuildRoomStudentsResponseAsync(query.RoomId, cancellationToken);
+    }
+
+    private async Task<Result<RoomStudentsResponse>> BuildRoomStudentsResponseAsync(
+        Guid roomId,
+        CancellationToken cancellationToken)
+    {
         var room = await roomDetailReader.GetRoomDetailAsync(roomId, cancellationToken);
         if (room is null)
         {

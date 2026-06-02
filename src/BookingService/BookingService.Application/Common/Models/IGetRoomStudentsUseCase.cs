@@ -8,4 +8,8 @@ public interface IGetRoomStudentsUseCase
     Task<Result<RoomStudentsResponse>> ExecuteAsync(
         GetRoomStudentsQuery query,
         CancellationToken cancellationToken);
+
+    Task<Result<RoomStudentsResponse>> ExecuteByRoomIdAsync(
+        GetRoomStudentsByRoomQuery query,
+        CancellationToken cancellationToken);
 }

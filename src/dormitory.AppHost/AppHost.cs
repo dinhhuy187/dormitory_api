@@ -32,6 +32,8 @@ var identityApi = builder.AddProject<Projects.Identity_API>("identity-api")
     .WithReference(profileApi)
     .WaitFor(profileApi);
 
+profileApi.WithReference(identityApi);
+
 var roomApi = builder.AddProject<Projects.RoomService_API>("room-api")
     .WithReference(roomDb)
     .WithReference(rabbitMq)

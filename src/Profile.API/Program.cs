@@ -42,6 +42,11 @@ builder.Services.AddCustomJwtAuthentication(builder.Configuration);
 
 builder.Services.AddAuthorization();
 builder.Services.AddGrpc();
+builder.Services.AddHttpClient("IdentityServiceClient", client =>
+{
+    client.BaseAddress = new Uri("http://identity-api");
+})
+.AddStandardResilienceHandler();
 builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
 builder.Services.AddHandlersFromAssemblyContaining<Program>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
@@ -52,18 +57,17 @@ builder.Services.AddOpenApi(options =>
 
 // Add services to the container.
 builder.Services.AddEndpoints(typeof(Program).Assembly);
+builder.Services.AddHostedService<ProfileSeedWorker>();
 var app = builder.Build();
 
 app.UseExceptionHandler();
 app.MapDefaultEndpoints();
 
 app.MapOpenApi("api/profile/openapi/v1.json");
-if (app.Environment.IsDevelopment())
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ProfileDbContext>();
-    db.Database.Migrate(); // ← tự migrate khi start
-}
+
+using var scope = app.Services.CreateScope();
+var db = scope.ServiceProvider.GetRequiredService<ProfileDbContext>();
+db.Database.Migrate(); // ← tự migrate khi start
 
 app.UseAuthentication();
 app.UseAuthorization();
