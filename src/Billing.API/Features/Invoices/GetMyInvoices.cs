@@ -46,7 +46,7 @@ public static class GetMyInvoices
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetMyInvoices")
-                .WithDescription("Required role: Student. Lists invoices for the authenticated student. Booking registration invoices are matched by StudentId; monthly utility invoices are matched by RoomId from the student's active or confirmed bookings resolved through BookingService. Optional filters are year, month, and status. Status enum values are Unpaid, WaitForConfirm, Paid, and Canceled. Response items include invoice type metadata, booking id when present, room location snapshot, term name, due date, and description from Billing. Pagination uses page and pageSize; defaults are page=1 and pageSize=20.")
+                .WithDescription("Required role: Student. Lists invoices for the authenticated student. Booking registration invoices are matched by StudentId; monthly utility invoices are matched by RoomId from the student's active or confirmed bookings resolved through BookingService. Room name is resolved from RoomService for the returned page. Optional filters are year, month, and status. Status enum values are Unpaid, WaitForConfirm, Paid, and Canceled. Response items include invoice type metadata, booking id when present, room name, room location snapshot, term name, due date, and description from Billing. Pagination uses page and pageSize; defaults are page=1 and pageSize=20.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<IReadOnlyList<InvoiceListItemResponse>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
@@ -73,7 +73,10 @@ public static class GetMyInvoices
 
     public sealed record PagedResult(IReadOnlyList<InvoiceListItemResponse> Items, int TotalItems, int Page, int PageSize);
 
-    public sealed class Handler(BillingDbContext dbContext, IBookingContractClient bookingContractClient)
+    public sealed class Handler(
+        BillingDbContext dbContext,
+        IBookingContractClient bookingContractClient,
+        IRoomBillingClient roomBillingClient)
     {
         public async Task<PagedResult> ExecuteAsync(
             Query query,
@@ -114,12 +117,32 @@ public static class GetMyInvoices
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
+            var roomNames = await GetRoomNamesAsync(invoices.Select(invoice => invoice.RoomId), cancellationToken);
 
             return new PagedResult(
-                invoices.Select(InvoiceResponseMapper.ToListItem).ToList(),
+                invoices
+                    .Select(invoice => InvoiceResponseMapper.ToListItem(
+                        invoice,
+                        roomNames.GetValueOrDefault(invoice.RoomId)))
+                    .ToList(),
                 totalItems,
                 page,
                 pageSize);
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetRoomNamesAsync(
+            IEnumerable<Guid> roomIds,
+            CancellationToken cancellationToken)
+        {
+            var roomNames = new Dictionary<Guid, string?>();
+
+            foreach (var roomId in roomIds.Distinct())
+            {
+                var room = await roomBillingClient.GetRoomBillingInfoAsync(roomId, cancellationToken);
+                roomNames[roomId] = room?.RoomNumber;
+            }
+
+            return roomNames;
         }
 
         private async Task<List<Guid>> GetEligibleRoomIdsAsync(string accessToken, CancellationToken cancellationToken)

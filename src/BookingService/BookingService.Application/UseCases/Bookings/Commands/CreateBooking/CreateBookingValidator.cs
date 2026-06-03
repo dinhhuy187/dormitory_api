@@ -10,6 +10,6 @@ public class CreateBookingValidator : AbstractValidator<CreateBookingRequest>
         RuleFor(x => x.UserId).NotEmpty().WithMessage("Mã sinh viên không được để trống");
         RuleFor(x => x.TermName)
         .NotEmpty().WithMessage("Vui lòng chọn năm học / kỳ học đăng ký.")
-        .MaximumLength(50).WithMessage("Tên kỳ học không hợp lệ");
+        .Equal("HK2_2025_2026").WithMessage("Tên kỳ học chỉ được là HK2_2025_2026.");
     }
 }

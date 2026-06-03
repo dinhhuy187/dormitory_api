@@ -179,7 +179,7 @@ public static class BookingEndpoints
         })
         .WithName("CreateBooking")
         .AddEndpointFilter<ValidationFilter<CreateBookingRequest>>()
-        .WithDescription("Term Name có các giá trị là học kỳ 1, 2, hè và năm học: HK1_2025_2026, HK2_2025_2026, HKH_2025_2026, HK1_2026_2027, HK2_2026_2027")
+        .WithDescription("Term Name chỉ nhận giá trị HK2_2025_2026.")
         .Produces<CreateBookingResponse>(StatusCodes.Status201Created);
     }
 }

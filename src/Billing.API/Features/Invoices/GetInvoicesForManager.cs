@@ -1,5 +1,6 @@
 using Billing.API.Domain.Enums;
 using Billing.API.Infrastructure.Database;
+using Billing.API.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Shared;
 using Shared.Endpoints;
@@ -13,6 +14,7 @@ public static class GetInvoicesForManager
         string InvoiceType,
         Guid? BookingId,
         Guid RoomId,
+        string? RoomName,
         string? BuildingCode,
         int? Floor,
         Guid? StudentId,
@@ -62,13 +64,13 @@ public static class GetInvoicesForManager
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetInvoicesForManager")
-                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Lists invoices for staff review. Optional filters are buildingCode, floor, year, month, and status. buildingCode and floor are queried from Billing invoice snapshots, and this endpoint does not call RoomService. Response items include invoice type metadata, booking id when present, term name, due date, and description from Billing. Status enum values are Unpaid, WaitForConfirm, Paid, and Canceled. Pagination defaults are page=1 and pageSize=20.")
+                .WithDescription("Required roles: Manager, Admin, or SeniorManager. Lists invoices for staff review. Optional filters are buildingCode, floor, year, month, and status. buildingCode and floor are queried from Billing invoice snapshots. Room name is resolved from RoomService for the returned page. Response items include invoice type metadata, booking id when present, term name, due date, and description from Billing. Status enum values are Unpaid, WaitForConfirm, Paid, and Canceled. Pagination defaults are page=1 and pageSize=20.")
                 .RequireAuthorization(policy => policy.RequireRole("Manager", "Admin", "SeniorManager"))
                 .Produces<IReadOnlyList<ManagerInvoiceListItemResponse>>(StatusCodes.Status200OK);
         }
     }
 
-    public sealed class Handler(BillingDbContext dbContext)
+    public sealed class Handler(BillingDbContext dbContext, IRoomBillingClient roomBillingClient)
     {
         public async Task<PagedResult> ExecuteAsync(Query query, CancellationToken cancellationToken)
         {
@@ -117,6 +119,7 @@ public static class GetInvoicesForManager
                     invoice.InvoiceType.ToString(),
                     invoice.BookingId,
                     invoice.RoomId,
+                    null,
                     invoice.BuildingCode,
                     invoice.Floor,
                     invoice.StudentId,
@@ -130,8 +133,30 @@ public static class GetInvoicesForManager
                     invoice.PaidAt,
                     invoice.CreatedAt))
                 .ToListAsync(cancellationToken);
+            var roomNames = await GetRoomNamesAsync(invoices.Select(invoice => invoice.RoomId), cancellationToken);
 
-            return new PagedResult(invoices, totalItems, page, pageSize);
+            return new PagedResult(
+                invoices
+                    .Select(invoice => invoice with { RoomName = roomNames.GetValueOrDefault(invoice.RoomId) })
+                    .ToList(),
+                totalItems,
+                page,
+                pageSize);
+        }
+
+        private async Task<Dictionary<Guid, string?>> GetRoomNamesAsync(
+            IEnumerable<Guid> roomIds,
+            CancellationToken cancellationToken)
+        {
+            var roomNames = new Dictionary<Guid, string?>();
+
+            foreach (var roomId in roomIds.Distinct())
+            {
+                var room = await roomBillingClient.GetRoomBillingInfoAsync(roomId, cancellationToken);
+                roomNames[roomId] = room?.RoomNumber;
+            }
+
+            return roomNames;
         }
     }
 }

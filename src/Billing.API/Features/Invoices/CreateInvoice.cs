@@ -221,10 +221,8 @@ public static class CreateInvoice
                 });
             }
 
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
             dbContext.Invoices.Add(invoice);
             await dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
 
             return new Response(
                 invoice.Id,

@@ -35,7 +35,7 @@ public static class GetMyInvoiceDetail
                 })
                 .WithTags("Billing - Invoices")
                 .WithName("GetMyInvoiceDetail")
-                .WithDescription("Required role: Student. Gets full invoice detail for the authenticated student only. Booking registration invoices are matched by StudentId; monthly utility invoices are matched by RoomId from the student's active or confirmed bookings resolved through BookingService. Status values are Unpaid, WaitForConfirm, Paid, and Canceled. Response includes invoice type metadata, room location snapshot, current building bank account from RoomService when the room still exists, old/new meter indices, tier snapshots, surcharges, totals, payment status, and contract template snapshot id.")
+                .WithDescription("Required role: Student. Gets full invoice detail for the authenticated student only. Booking registration invoices are matched by StudentId; monthly utility invoices are matched by RoomId from the student's active or confirmed bookings resolved through BookingService. Status values are Unpaid, WaitForConfirm, Paid, and Canceled. Response includes invoice type metadata, room name and location snapshot, current building bank account from RoomService when the room still exists, old/new meter indices, tier snapshots, surcharges, totals, payment status, and contract template snapshot id.")
                 .RequireAuthorization(policy => policy.RequireRole("Student"))
                 .Produces<InvoiceDetailResponse>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status401Unauthorized);
@@ -85,7 +85,7 @@ public static class GetMyInvoiceDetail
                 ? null
                 : new BuildingBankAccountResponse(room.BankCode, room.AccountNumber, room.AccountName);
 
-            return InvoiceResponseMapper.ToDetail(invoice, buildingBankAccount);
+            return InvoiceResponseMapper.ToDetail(invoice, buildingBankAccount, room?.RoomNumber);
         }
 
         private async Task<bool> CanAccessInvoiceAsync(

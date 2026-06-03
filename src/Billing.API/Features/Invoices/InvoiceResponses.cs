@@ -8,6 +8,7 @@ public sealed record InvoiceListItemResponse(
     string InvoiceType,
     Guid? BookingId,
     Guid RoomId,
+    string? RoomName,
     string? BuildingCode,
     int? Floor,
     string? TermName,
@@ -25,6 +26,7 @@ public sealed record InvoiceDetailResponse(
     string InvoiceType,
     Guid? BookingId,
     Guid RoomId,
+    string? RoomName,
     string? BuildingCode,
     int? Floor,
     BuildingBankAccountResponse? BuildingBankAccount,
@@ -76,13 +78,14 @@ public static class InvoiceResponseMapper
         PropertyNameCaseInsensitive = true
     };
 
-    public static InvoiceListItemResponse ToListItem(Invoice invoice)
+    public static InvoiceListItemResponse ToListItem(Invoice invoice, string? roomName = null)
     {
         return new InvoiceListItemResponse(
             invoice.Id,
             invoice.InvoiceType.ToString(),
             invoice.BookingId,
             invoice.RoomId,
+            roomName,
             invoice.BuildingCode,
             invoice.Floor,
             invoice.TermName,
@@ -98,13 +101,15 @@ public static class InvoiceResponseMapper
 
     public static InvoiceDetailResponse ToDetail(
         Invoice invoice,
-        BuildingBankAccountResponse? buildingBankAccount = null)
+        BuildingBankAccountResponse? buildingBankAccount = null,
+        string? roomName = null)
     {
         return new InvoiceDetailResponse(
             invoice.Id,
             invoice.InvoiceType.ToString(),
             invoice.BookingId,
             invoice.RoomId,
+            roomName,
             invoice.BuildingCode,
             invoice.Floor,
             buildingBankAccount,
