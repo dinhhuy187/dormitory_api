@@ -3,6 +3,7 @@ using BookingService.Application.UseCases.Bookings.Commands.CancelBooking;
 using BookingService.Application.UseCases.Bookings.Commands.CheckoutBooking;
 using BookingService.Application.UseCases.Bookings.Commands.ConfirmBooking;
 using BookingService.Application.UseCases.Bookings.Commands.CreateBooking;
+using BookingService.Application.UseCases.Bookings.Queries.GetMyCurrentRoom;
 using BookingService.Application.UseCases.Bookings.Queries.GetRoomStudents;
 using BookingService.Application.UseCases.Bookings.Queries.GetUserBookings;
 using BookingService.Application.UseCases.FeeTemplates.Queries.GetAllFeeTemplates;
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IConfirmBookingUseCase, ConfirmBookingUseCase>();
         services.AddScoped<ICancelBookingUseCase, CancelBookingUseCase>();
         services.AddScoped<ICheckoutBookingUseCase, CheckoutBookingUseCase>();
+        services.AddScoped<IGetMyCurrentRoomUseCase, GetMyCurrentRoomUseCase>();
         services.AddScoped<IGetUserBookingsUseCase, GetUserBookingsUseCase>();
         services.AddScoped<IGetRoomStudentsUseCase, GetRoomStudentsUseCase>();
         services.AddScoped<IGetAllFeeTemplatesUseCase, GetAllFeeTemplatesUseCase>();

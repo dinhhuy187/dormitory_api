@@ -51,6 +51,8 @@ var bookingApi = builder.AddProject<Projects.BookingService_API>("booking-api")
     .WaitFor(profileApi)
     .WaitFor(identityApi);
 
+profileApi.WithReference(bookingApi);
+
 var communityApi = builder.AddProject<Projects.Community_API>("community-api")
     .WithReference(communityDb)
     .WithReference(profileApi);

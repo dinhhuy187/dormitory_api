@@ -47,6 +47,11 @@ builder.Services.AddHttpClient("IdentityServiceClient", client =>
     client.BaseAddress = new Uri("http://identity-api");
 })
 .AddStandardResilienceHandler();
+builder.Services.AddHttpClient("BookingServiceClient", client =>
+{
+    client.BaseAddress = new Uri("http://booking-api");
+})
+.AddStandardResilienceHandler();
 builder.Services.AddScoped<IMediaService, CloudinaryMediaService>();
 builder.Services.AddHandlersFromAssemblyContaining<Program>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
